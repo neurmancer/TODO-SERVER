@@ -2,7 +2,7 @@
 
 
         ============================= YAPPING ===========================
-
+    Damn...
     'Sup? I've returned with yet another network fuckery 
     (local network till I learn how to make this shit world-wide but on the bright side: You can't get hacked if you are not on the internet)
     So I present you the idea of To-Do server so yeah I am making a Fucking CRUD app despite being a low-level gremlin
