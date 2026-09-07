@@ -23,7 +23,7 @@ and now I need a separate repo to keep developing it
 
 - [X] A modular structure (well...kinda started)
 - [X] A basic focused-on-project web framework (to make my job easier not entrepriese level shit)
-- [ ] A basic templating engine to use .html templates instead of what I am doing rn (Shit I'll be working)
+- [ ] A basic templating engine to use .html templates instead of what I am doing rn (Shit I'll be working on)
 - [ ] Database implementation (and shit I'll be experimentign on)
 
 
@@ -33,6 +33,8 @@ and now I need a separate repo to keep developing it
 - a makefile with compile-time conf options
 - src subfolder for QoL update (Yeah I am thinking my little web router as a basic minecraft mod)
 - frontend folder (which only includes index.html for now)
+
+- template.c and template.h added but haven't used nor added to Makefile
 
 ### Compile Thing
 
