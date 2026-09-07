@@ -9,7 +9,7 @@
 
 static char *read_file(const char *filename) {
     FILE *f = fopen(filename, "rb");
-    if (!f) { return NULL; }
+    if (!f) { return(NULL); }
 
     fseek(f, 0, SEEK_END);
     long size = ftell(f);

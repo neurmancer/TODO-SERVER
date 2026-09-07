@@ -1,5 +1,5 @@
 #ifndef TEMPLATE_H
-#define TEMPLATE_H
+    #define TEMPLATE_H
 
 #include <stddef.h>
 
