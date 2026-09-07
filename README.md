@@ -4,7 +4,7 @@
 
 > This project started as a proof of concept then started to get **bigger**
 and now I need a separate repo to keep developing it 
-> And yeah I am getting more and more corpo with building a *FUCKING* CRUD App
+> And yeah I am getting more and more corpo with building a *FUCKING* CRUD App (but I swear I won't put a tie trust me...)
 
 ### DEV BRANCH MISSONS 
 
@@ -15,7 +15,7 @@ and now I need a separate repo to keep developing it
 
 ### Possible Future paths for this project
 
-- [ ] A modular structure 
-- [ ] A basic focused-on-project web framework (to make my job easier not entrepriese level shit)
-- [ ] A basic templating engine to use .html templates instead of what I am doing rn
-- [ ] Database implementation 
+- [X] A modular structure (well...kinda started)
+- [X] A basic focused-on-project web framework (to make my job easier not entrepriese level shit)
+- [ ] A basic templating engine to use .html templates instead of what I am doing rn (Shit I'll be working)
+- [ ] Database implementation (and shit I'll be experimentign on)

@@ -1,3 +1,5 @@
+#	First, WTF Makefile? Second, I ain't remembering those order anyways so...here you go
+
 # ========================
 # Configurable variables
 # ========================
@@ -5,7 +7,7 @@ MAIN      ?= serverThingy.c
 SOURCES   ?= src/handlers.c src/utils.c src/router.c
 TARGET    ?= server
 CC        ?= gcc
-CFLAGS    ?= -Wall -Wextra -g -std=c11
+CFLAGS    ?= -Wall -Wextra -std=c99
 LDFLAGS   ?= 
 
 # ===================
