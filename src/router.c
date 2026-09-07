@@ -36,7 +36,7 @@ void handle_request(int client_sock, const char *raw) {
 
     sscanf(raw, "%15s %511s", method, path);
 
-    // Find body if it exists
+
     const char *body = strstr(raw, "\r\n\r\n");
     if (body) body += 4;
     else body = "";
@@ -61,6 +61,5 @@ void handle_request(int client_sock, const char *raw) {
         }
     }
 
-    // no match → 404
-    send_404(client_sock, path, body);   // you’ll move this later
+    send_404(client_sock, path, body);
 }
