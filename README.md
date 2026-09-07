@@ -24,7 +24,7 @@ and now I need a separate repo to keep developing it
 - [X] A modular structure (well...kinda started)
 - [X] A basic focused-on-project web framework (to make my job easier not entrepriese level shit)
 - [ ] A basic templating engine to use .html templates instead of what I am doing rn (Shit I'll be working on)
-- [ ] Database implementation (and shit I'll be experimentign on)
+- [-] Database implementation (Half-way there)
 
 
 ### Folders and files in the repo
