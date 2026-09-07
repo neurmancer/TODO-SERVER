@@ -65,23 +65,28 @@ enum STATUS add_todo(sqlite3 *db, struct todo_data *data)
     int rc = sqlite3_prepare_v2(db, sql_queries_or_whatever[NEW_TODO], -1, &res, 0);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "To-Do couldn't added:%s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
         return(U_FUCKED);
     }
 
-    sqlite3_bind_text(res, TITLE,data->title,-1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(res, COMPLETED,data->title,-1, SQLITE_TRANSIENT);
+    if(sqlite3_bind_text(res, TITLE,data->title,-1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        fprintf(stderr, "first bind err: %s\n", sqlite3_errmsg(db));
+        return(U_FUCKED);
+    }
+
+    if(sqlite3_bind_int(res, COMPLETED,data->is_done) != SQLITE_OK)
+    {
+        fprintf(stderr, "FUCKKKK Second bind err: %s\n", sqlite3_errmsg(db));
+        return(U_FUCKED);
+    }
     
     rc = sqlite3_step(res);
     if (rc != SQLITE_DONE) {
         fprintf(stderr, "Something happeend it is:%s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
         return(U_FUCKED);
     }
 
     sqlite3_finalize(res);
-    sqlite3_close(db);
-
     return(OK);
 }
 
@@ -98,3 +103,4 @@ enum STATUS update_todo(sqlite3 *db, struct todo_data *data)
 
     return(OK);
 }
+
