@@ -2,6 +2,9 @@
 #include "handlers.h"
 
 
+//well...I gotta admit I am quite afraid to migrate that abomination to db without fucking up rn...
+//I mean it's broken yeah but at least I can see a fucking webpage 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

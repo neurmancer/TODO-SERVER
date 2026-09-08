@@ -85,7 +85,3 @@ int main(void)
     close(server_sock);
     return 0;
 }
-
-// ===================== HANDLERS =====================
-
-

@@ -4,10 +4,10 @@
 # Configurable variables
 # ========================
 MAIN      ?= serverThingy.c
-SOURCES   ?= src/handlers.c src/utils.c src/router.c src/database.c src/handlers.c 
+SOURCES   ?= src/handlers.c src/utils.c src/router.c src/database.c src/handlers.c src/template.c
 TARGET    ?= server
 CC        ?= gcc
-CFLAGS    ?= -Wall -Wextra -std=c99
+CFLAGS    ?= -Wall -Wextra -std=c99 -lsqlite3
 LDFLAGS   ?= 
 
 # ===================
