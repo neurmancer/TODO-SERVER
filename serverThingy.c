@@ -17,9 +17,6 @@
 
 
 
-extern void handle_request(int client_sock, const char *raw_request);
-extern void route(const char *method, const char *path, Handler handler);
-
 int main(void)
 {
     int server_sock = 0, client_sock = 0;
