@@ -31,7 +31,7 @@ sqlite3 *set_db(void)
     char env_buffer[BUFFER_SIZE] = { 0 };
     char db_path[BUFFER_SIZE] = { 0 };
 
-    if (get_env(env_buffer, BUFFER_SIZE) == -1)
+    if (get_cwd(env_buffer, BUFFER_SIZE) == -1)
     {
         return(NULL);
     }

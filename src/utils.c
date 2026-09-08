@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <unitypes.h>
 
 void url_decode(char *str)
 {
@@ -29,7 +30,7 @@ void url_decode(char *str)
 }
 
 
-enum STATUS get_env(char *buffer,size_t size)
+enum STATUS get_cwd(char *buffer,size_t size)
 {
     char cwd[2048] = { 0 };
     if(!getcwd(cwd, sizeof(cwd))){
@@ -44,5 +45,23 @@ enum STATUS get_env(char *buffer,size_t size)
     memcpy(buffer, cwd, path_len);
 
     buffer[path_len] = '\0';
+    return(OK);
+}
+
+
+enum STATUS get_env(char *buf, size_t size)
+{
+    const char *home = getenv("HOME");
+    size_t home_path_len = strlen(home);
+    if (home == NULL) {
+        return(U_FUCKED);
+    }
+
+    if (size < home_path_len+1) {
+        return(U_FUCKED);
+    }
+    memcpy(buf, home, home_path_len);
+    buf[home_path_len] = '\0';
+
     return(OK);
 }
