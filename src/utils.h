@@ -6,11 +6,12 @@
 #define TITLE_LEN 256
 #define CONTENT_LEN 8192
 
-struct todo_data{
-    char content[CONTENT_LEN];
-    char title[TITLE_LEN];
-    unsigned int id;
-    unsigned int is_done;
+struct todo_data {
+    int id;
+    char *title;
+    char *content;      // the big yappy boy
+    int is_done;
+    long created_at;
 };
 
 
