@@ -16,6 +16,8 @@
 #define BUF_SIZE 8192
 
 
+//Well... this is where old architecture and new one clashes I am freezing the project at this exact moment because I have no idea to to connect the shit I created with the main...
+
 
 int main(void)
 {
