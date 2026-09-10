@@ -36,6 +36,7 @@ enum STATUS get_cwd(char *buffer,size_t size)
     if(!getcwd(cwd, sizeof(cwd))){
         return(U_FUCKED);
     }
+    
     size_t path_len = strlen(cwd);
     if(size < path_len+1)   //Null term space check
     {

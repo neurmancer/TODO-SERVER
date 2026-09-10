@@ -46,14 +46,6 @@ static const char *skip_ws(const char *p) {
     return(p);
 }
 
-static int match_tag(const char *p, const char *tag) {
-    p = skip_ws(p);
-    size_t tag_len = strlen(tag);
-    if (strncmp(p, tag, tag_len) != 0) return 0;
-    p += tag_len;
-    p = skip_ws(p);
-    return((*p == ']' && *(p+1) == ']'));
-}
 
 char *render_template(const char *filename, TemplateVar *vars, size_t var_count) {
     char *src = read_file(filename);
