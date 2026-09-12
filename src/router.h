@@ -1,12 +1,13 @@
 #ifndef ROUTES_H
     #define ROUTES_H
 
-#include <stddef.h>
+#include <sqlite3.h>
 
-typedef void (*Handler)(int client_sock, const char *path, const char *body);
-void send_404(int client_sock, const char *path, const char *body);
+typedef void (*Handler)(int client_sock, sqlite3 *db, const char *path, const char *body);
 
-void route(const char *method, const char *path, Handler handler);
-void handle_request(int client_sock, const char *raw_request);
+// Returns 0 on success, -1 for invalid routes or a full route table.
+int route(const char *method, const char *path, Handler handler);
+// The caller owns the database connection and client socket.
+void handle_request(int client_sock, sqlite3 *db, const char *raw_request);
 
 #endif

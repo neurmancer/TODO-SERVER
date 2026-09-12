@@ -2,9 +2,9 @@
 
 > yeah a repo where I am trying to make a to-do app...I have a to-do readme...
 
-- [ ] use goto for cleanup pattern in database.c
+- [ ] use goto for cleanup pattern in all codebase
 
-- [ ] better abstraction maybe...dunno yet...
+- [ ] Run valgrind to see if shit's leakign
 
 - [ ] css and js support (well route table can handle it with a few tweaks)
 
@@ -13,25 +13,3 @@
 - [X] Man...it's getting late
 
 
-
-```c
-//Well I don't have the mental capacity to implement this rn but I can't forget so here is a dynamic_http struct draft
-
-int http_send_response(
-    int client_sock,
-    int status,
-    const char *content_type,
-    const char *body
-);
-
-//Yeah...in a notes markdown I am still writing fucking C
-//And function returns would somethingl like that:
-return(
-    http_send_response(
-    client_sock,
-    200,
-    "text/html",
-    page)
-);
-
-```

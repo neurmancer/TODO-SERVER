@@ -4,6 +4,43 @@
 #include <string.h>
 #define INITIAL_BUF 8192
 
+FILE *render_template_file(const char *filename, TemplateVar *vars,
+                           size_t var_count, size_t *byte_count)
+{
+    if (!byte_count) return(NULL);
+    *byte_count = 0;
+    char *page = render_template(filename, vars, var_count);
+    if (!page) return(NULL);
+
+    // tmpfile() gives each response its own file and removes it on fclose().
+    FILE *file = tmpfile();
+    if (!file) {
+        free(page);
+        return(NULL);
+    }
+
+    size_t length = strlen(page);
+    size_t written = 0;
+    while (written < length) {
+        size_t count = fwrite(page + written, 1, length - written, file);
+        written += count;
+        if (count == 0 || ferror(file)) {
+            free(page);
+            fclose(file);
+            return(NULL);
+        }
+    }
+    free(page);
+
+    // stdio must flush its buffer before sendfile() reads the descriptor.
+    if (fflush(file) != 0 || fseek(file, 0, SEEK_SET) != 0) {
+        fclose(file);
+        return(NULL);
+    }
+    *byte_count = written;
+    return(file);
+}
+
 //Now what? Should I study finite automata?
 
 static char *read_file(const char *filename) {
@@ -250,5 +287,4 @@ char *render_template(const char *filename, TemplateVar *vars, size_t var_count)
     free(src);
     return(out);
 }
-
 

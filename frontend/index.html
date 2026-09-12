@@ -35,11 +35,12 @@
     <h1>Create a new Todo</h1>
 
     <form action="/" method="POST">
-        <input type="text" name="To do is to be" placeholder="What's Today's Fuckery?" required>
+        <input type="text" name="todo" placeholder="What's Today's Fuckery?" required>
         <button type="submit">Create</button>
     </form>
 
     <hr>
-    <p>Hmmm.</p>
+    <h2>Your todos</h2>
+    <ul>{{ todo_list }}</ul>
 </body>
 </html>

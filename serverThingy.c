@@ -1,40 +1,58 @@
 #include "src/router.h"
 #include "src/handlers.h"
+#include "src/database.h"
+#include "src/request.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <unistd.h>
-#include <dirent.h>
-//#include <errno.h>
+#include <errno.h>
+#include <signal.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <arpa/inet.h>
 
+#ifndef PORT
 #define PORT 8080
+#endif
 #define BACKLOG 10
-#define BUF_SIZE 8192
-
-
-//Well... this is where old architecture and new one clashes I am freezing the project at this exact moment because I have no idea to to connect the shit I created with the main...
 
 
 int main(void)
 {
-    int server_sock = 0, client_sock = 0;
+    int server_sock = -1, client_sock = -1;
+    sqlite3 *db = set_db();
+    if (!db) return(EXIT_FAILURE);
+
     struct sockaddr_in server_addr = {0}, client_addr = {0};
-    socklen_t client_len = sizeof(client_addr);
 
     int opt = 1;
-    mkdir("todos", 0755);
+
+    // A disconnected browser must not terminate the server during send().
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+        perror("signal failed");
+        goto cleanup;
+    }
+
+    if (route("GET",  "/",        send_homepage) < 0 ||
+        route("GET",  "/todos/*", send_todo_page) < 0 ||
+        route("POST", "/",        handle_post) < 0 ||
+        route("POST", "/update",  handle_update) < 0 ||
+        route("POST", "/delete",  handle_delete) < 0) {
+        goto cleanup;
+    }
 
     server_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (server_sock == -1) {
         perror("Socket sucked it");
-        exit(EXIT_FAILURE);
+        goto cleanup;
     }
 
-    setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    if (setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+        perror("setsockopt failed");
+        goto cleanup;
+    }
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
@@ -42,49 +60,51 @@ int main(void)
 
     if (bind(server_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
         perror("bind failed");
-        exit(EXIT_FAILURE);
+        goto cleanup;
     }
 
     if (listen(server_sock, BACKLOG) == -1) {
         perror("listen failed");
-        close(server_sock);
-        exit(1);
+        goto cleanup;
     }
 
     printf("Server is running on http://localhost:%d\n", PORT);
 
-    route("GET",  "/",          send_homepage);
-    route("GET",  "/todos/*",   send_todo_page);    //maybe will change
-    route("POST", "/",          handle_post);
-    route("POST", "/update",    handle_update);
-    route("POST", "/delete",    handle_delete);
-    //Place holders:
-        //route("GET", "/static/style.css", handle_css);
-        //route("GET", "/static/i_dk_js.js", handle_js);
-        
-
     while (1) {
+        socklen_t client_len = sizeof(client_addr);
         client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &client_len);
         if (client_sock == -1) {
+            if (errno == EINTR) continue;
             perror("accept failed");
-            continue;
+            goto cleanup;
         }
 
-        char buf[BUF_SIZE] = {0};
-        ssize_t bytes = recv(client_sock, buf, sizeof(buf) - 1, 0);
-        if (bytes <= 0) {
+        // Don't let an idle connection hold this single-threaded server forever.
+        struct timeval timeout = {.tv_sec = 5};
+        if (setsockopt(client_sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0 ||
+            setsockopt(client_sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0) {
+            perror("client timeout setup failed");
             close(client_sock);
+            client_sock = -1;
             continue;
         }
-        buf[bytes] = '\0';
 
-        printf("Request: %.*s\n", (int)strcspn(buf, "\r\n"), buf);
-
-        handle_request(client_sock, buf);
+        char buf[HTTP_REQUEST_CAPACITY];
+        int status = read_http_request(client_sock, buf, sizeof(buf));
+        if (status == 200) {
+            printf("Request: %.*s\n", (int)strcspn(buf, "\r\n"), buf);
+            handle_request(client_sock, db, buf);
+        } else if (status != 0) {
+            send_request_error(client_sock, status);
+        }
 
         close(client_sock);
+        client_sock = -1;
     }
 
-    close(server_sock);
-    return 0;
+cleanup:
+    if (client_sock != -1) close(client_sock);
+    if (server_sock != -1) close(server_sock);
+    sqlite3_close(db);
+    return(EXIT_FAILURE);
 }

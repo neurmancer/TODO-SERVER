@@ -8,7 +8,7 @@
 #include "utils.h"
 
 #define BUFFER_SIZE 512
-#define TODO_RELATIVE_DB "/db/todo.db"
+#define TODO_RELATIVE_DB "/src/db/todo.db"
 
 sqlite3 *set_db(void)
 {

@@ -6,12 +6,23 @@
     <title>{{ title }}</title>
 </head>
 <body>
-    <!--Those are the representations that I'll go for for template engine I guess-->
-    {{ content }} <!--For direct copy of the content-->
-    [[ done ]] <!--For if else clause works only in binary (0,1) again I am not fucking a multi-million corpo-->
-        <h1>DONE</h1>
+    <a href="/">Back to all todos</a>
+    <h1>{{ title }}</h1>
+    <p>Todo #{{ id }} · Created at Unix Epoch timestamp {{ created_at }}</p>
+    [[ done ]]
+        <p>DONE</p>
+    [[ else ]]
+        <p>Still to do</p>
     [[ endif ]]
-
-    <!--That's the style I'm going for for templating jinja can suck my D-->
+    <form action="/update" method="POST">
+        <input type="hidden" name="id" value="{{ id }}">
+        <label for="content">Content</label><br>
+        <textarea id="content" name="content" rows="12" cols="70">{{ content }}</textarea><br>
+        <button type="submit">Save</button>
+    </form>
+    <form action="/delete" method="POST">
+        <input type="hidden" name="id" value="{{ id }}">
+        <button type="submit">Delete</button>
+    </form>
 </body>
 </html>
