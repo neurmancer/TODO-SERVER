@@ -10,9 +10,6 @@ CC        ?= gcc
 CFLAGS    ?= -Wall -Wextra -lsqlite3
 LDFLAGS   ?= 
 
-# ===================
-#	THE REST
-# =================== 
 
 OBJS = $(MAIN:.c=.o) $(SOURCES:.c=.o)
 
@@ -28,7 +25,7 @@ $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJS) $(TARGET) tests/test_request
+	rm -f $(OBJS) $(TARGET) tests/test_request tests/render_driver
 	@echo "→ Cleaned"
 
 rebuild: clean all
@@ -36,8 +33,13 @@ rebuild: clean all
 run: $(TARGET)
 	./$(TARGET)
 
-test: tests/test_request
+## Test clause (it's in .gitignore bruh don't try to use this)
+test: tests/test_request tests/render_driver
 	./tests/test_request
+	python3 tests/test_rendering.py
 
 tests/test_request: tests/test_request.c $(sort $(SOURCES)) $(wildcard src/*.h)
 	$(CC) -Wall -Wextra -Werror -Isrc -o $@ tests/test_request.c $(sort $(SOURCES)) -Wl,--wrap=recv -Wl,--wrap=send -lsqlite3
+
+tests/render_driver: tests/render_driver.c $(sort $(SOURCES)) $(wildcard src/*.h)
+	$(CC) -Wall -Wextra -Werror -Isrc -o $@ tests/render_driver.c $(sort $(SOURCES)) -Wl,--wrap=recv -Wl,--wrap=send -lsqlite3
