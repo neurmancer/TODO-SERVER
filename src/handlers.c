@@ -17,6 +17,36 @@
     #define BUF_SIZE 8192
 #endif
 
+
+//This will use the get a dynamic response 
+static const HttpStatus status_table[] = {
+    {200, "OK"},
+    {303, "See Other"},
+    {400, "Bad Request"},
+    {403, "Forbidden"},
+    {404, "Not Found"},
+    {500, "Internal Server Error"}
+};
+
+/*
+    It'll be somethig like that...
+snprintf(
+    response,
+    sizeof(response),
+    "HTTP/1.1 %d %s\r\n"
+    "Content-Type: %s\r\n"
+    "Connection: close\r\n"
+    "\r\n",
+    status.code,
+    status.meaning,
+    content_type
+);
+
+
+
+*/
+
+
 void send_404(int client_sock, const char *path, const char *body)
 {
     (void)path; (void)body;

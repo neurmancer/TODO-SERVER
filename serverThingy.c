@@ -54,10 +54,14 @@ int main(void)
     printf("Server is running on http://localhost:%d\n", PORT);
 
     route("GET",  "/",          send_homepage);
-    route("GET",  "/todos/*",   send_todo_page);
+    route("GET",  "/todos/*",   send_todo_page);    //maybe will change
     route("POST", "/",          handle_post);
     route("POST", "/update",    handle_update);
     route("POST", "/delete",    handle_delete);
+    //Place holders:
+        //route("GET", "/static/style.css", handle_css);
+        //route("GET", "/static/i_dk_js.js", handle_js);
+        
 
     while (1) {
         client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &client_len);

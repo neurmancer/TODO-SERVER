@@ -53,10 +53,10 @@ enum STATUS get_cwd(char *buffer,size_t size)
 enum STATUS get_env(char *buf, size_t size)
 {
     const char *home = getenv("HOME");
+    if (home == NULL) { return(U_FUCKED); }
+
     size_t home_path_len = strlen(home);
-    if (home == NULL) {
-        return(U_FUCKED);
-    }
+
 
     if (size < home_path_len+1) {
         return(U_FUCKED);
