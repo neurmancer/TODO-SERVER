@@ -3,6 +3,7 @@
 #include "src/database.h"
 #include "src/request.h"
 
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,39 +20,49 @@
 #define BACKLOG 10
 
 
+/*
+
+    'sup? I am documentation Neuro (after first successful) launch of the server
+    I started with 'whatever keeps the shit together' formatting so I future me is (which is the literally me from now) formatting the 
+    code before adding CSS and JS routes and daemonize the server 
+
+*/
+
+
 int main(void)
 {
-    int server_sock = -1, client_sock = -1;
+    int server_sock = -1;
+    int client_sock = -1;
     sqlite3 *db = set_db();
+
     if (!db) return(EXIT_FAILURE);
 
-    struct sockaddr_in server_addr = {0}, client_addr = {0};
+    struct sockaddr_in server_addr = {0};
+    struct sockaddr_in client_addr = {0};
 
     int opt = 1;
 
     // A disconnected browser must not terminate the server during send().
     if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
         perror("signal failed");
-        goto cleanup;
+        goto rome;
     }
 
     if (route("GET",  "/",        send_homepage) < 0 ||
         route("GET",  "/todos/*", send_todo_page) < 0 ||
         route("POST", "/",        handle_post) < 0 ||
-        route("POST", "/update",  handle_update) < 0 ||
-        route("POST", "/delete",  handle_delete) < 0) {
-        goto cleanup;
-    }
+        route("POST", "/update",  handle_update) < 0 || /*Longest if statement I've ever written so far*/
+        route("POST", "/delete",  handle_delete) < 0) { goto rome; } 
 
     server_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (server_sock == -1) {
         perror("Socket sucked it");
-        goto cleanup;
+        goto rome;
     }
 
     if (setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
         perror("setsockopt failed");
-        goto cleanup;
+        goto rome;
     }
 
     server_addr.sin_family = AF_INET;
@@ -60,12 +71,12 @@ int main(void)
 
     if (bind(server_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
         perror("bind failed");
-        goto cleanup;
+        goto rome;
     }
 
     if (listen(server_sock, BACKLOG) == -1) {
         perror("listen failed");
-        goto cleanup;
+        goto rome;
     }
 
     printf("Server is running on http://localhost:%d\n", PORT);
@@ -74,12 +85,13 @@ int main(void)
         socklen_t client_len = sizeof(client_addr);
         client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &client_len);
         if (client_sock == -1) {
-            if (errno == EINTR) continue;
+            if (errno == EINTR) { continue; }
+
             perror("accept failed");
-            goto cleanup;
+            goto rome;
         }
 
-        // Don't let an idle connection hold this single-threaded server forever.
+        //Idle thread fuckery part
         struct timeval timeout = {.tv_sec = 5};
         if (setsockopt(client_sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0 ||
             setsockopt(client_sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0) {
@@ -94,7 +106,9 @@ int main(void)
         if (status == 200) {
             printf("Request: %.*s\n", (int)strcspn(buf, "\r\n"), buf);
             handle_request(client_sock, db, buf);
-        } else if (status != 0) {
+        } 
+        
+        else if (status != 0) {
             send_request_error(client_sock, status);
         }
 
@@ -102,7 +116,7 @@ int main(void)
         client_sock = -1;
     }
 
-cleanup:
+rome:
     if (client_sock != -1) close(client_sock);
     if (server_sock != -1) close(server_sock);
     sqlite3_close(db);

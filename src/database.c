@@ -10,6 +10,18 @@
 #define BUFFER_SIZE 512
 #define TODO_RELATIVE_DB "/src/db/todo.db"
 
+/*
+
+    for now this database still uses the relative TODO but I'll change the get_cwd thign with getenv thing 
+    I may add a build.sh file to automate all the dir creation/compiling/and daemonizing process but that would require root
+    root which isn't a problem for me but...on github it's dangerous for other people I guess
+
+
+    Besides I literally learned and forgot sqlite3 in 2 days so this knowledge is partially a lost-media to me 
+    
+*/
+
+
 sqlite3 *set_db(void)
 {
     sqlite3 *database = NULL;

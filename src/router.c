@@ -5,6 +5,7 @@
 
 #define MAX_ROUTES 64
 
+//Fuck...I've become a web-dev...
 
 typedef struct {
     char method[8];
@@ -68,7 +69,7 @@ void handle_request(int client_sock, sqlite3 *db, const char *raw) {
         if (strcmp(r->method, method) != 0) continue;
 
         if (r->is_wildcard) {
-            // super simple: check if path starts with the part before *
+            // super simple: check if path starts with the part before * and that's fucking it
             size_t len = strlen(r->path) - 1;
             if (strncmp(path, r->path, len) == 0) {
                 r->handler(client_sock, db, path, body);

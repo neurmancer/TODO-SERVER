@@ -2,7 +2,7 @@
 
 > yeah a repo where I am trying to make a to-do app...I have a to-do readme...
 
-- [ ] use goto for cleanup pattern in all codebase
+- [X] use goto for cleanup pattern in all codebase
 
 - [ ] Run valgrind to see if shit's leakign
 

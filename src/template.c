@@ -4,6 +4,9 @@
 #include <string.h>
 #define INITIAL_BUF 8192
 
+
+
+
 FILE *render_template_file(const char *filename, TemplateVar *vars,
                            size_t var_count, size_t *byte_count)
 {
@@ -13,6 +16,14 @@ FILE *render_template_file(const char *filename, TemplateVar *vars,
     if (!page) return(NULL);
 
     // tmpfile() gives each response its own file and removes it on fclose().
+
+    /*
+        btw totally off-topic but I wanna tell you what I've seen so here is tea:
+        while I was on a break at work I was looking at tmpfile's man page tmpfile(3)
+        and saw mktemp (libc function not the mktemp(1)) and the DESCRIPTION literally starts with:
+        Never use this function; see BUGS. and I laughed...I dunno why but it was funny 
+    
+    */
     FILE *file = tmpfile();
     if (!file) {
         free(page);
