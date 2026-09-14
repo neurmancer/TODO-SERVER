@@ -107,6 +107,19 @@ chmod +x build.sh #if not an executable already
 ---
 
 
+### Future Updates
+
+- I am not promising those but I do say there is a non-zero chance of those happen to exist in this repo one day
+
+- new error reporting using err (BSD version) to journal
+
+- getting the device IP on runtime to make the server accessible to LAN instead of caging it only to localhost
+
+- An HTTPS feature
+
+- And changed colors for highlighted c format markdown
+
+---
 ### Legal Stuff and Licensing
 
 This project is licensec under GPL-3.0 thing if you're a badge or law nerd the proper sources are:
