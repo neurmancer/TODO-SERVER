@@ -22,8 +22,6 @@ and now I need a separate repo to keep developing it
 
 - [Bragging](#other-stuff)
 
-- [Usage](#usage)
-
 - [Legal Shit](#legal-stuff-and-licensing)
 
 ---
@@ -31,7 +29,7 @@ and now I need a separate repo to keep developing it
 ### Disclaimer
 
 > The build system (build.sh) uses momenteraly sudo privs and **DO NOT** use it if you are not comfortable with that
-    - For further implementation details about it check [Othet stuff](#other-stuff)
+-   For further implementation details about it check [Othet stuff](#other-stuff)
 
 --- 
 
@@ -67,6 +65,8 @@ cp frontend  ~/.server && cp db  ~/.server # assuming you're in the TODO-SERVER 
 
 ```
 
+or moidfy source code itself to use cwd instead of path_to_server() for local testing (get_cwd is also a utility function in the utils.h)
+
 ```bash
 
 make    #compile the shit
@@ -80,8 +80,8 @@ make run    # I mean that is pointless since you can just do ./server but I've a
 
 **Important Shit**
 
-build.sh will use **sudo** privs for update, package installation, and moving server and server.service files to the said folders 
-If you haven't checked the code yourself or you don't trust the author (me) **DO NOT ALLOW**
+build.sh will use **sudo** (elevated) privs for update, package installation, and moving server and server.service files to the said folders 
+If you haven't checked the code yourself or you don't trust the author (me (the gremlin with dyslexia)) **DO NOT ALLOW**
 
 ---
 - Full build file is not a mere build file the file does various tasks such as:
@@ -100,7 +100,7 @@ To use:
 chmod +x build.sh #if not an executable already
 ./build.sh  #To build the server
 ./build.sh remove #To remove daemon and the service file (user db && frontend is presevered )
-./build.sh deletye #To delete db and frontend as well as unloading the daemon 
+./build.sh delete #To delete db and frontend as well as unloading the daemon 
 
 ```
 
@@ -113,5 +113,5 @@ This project is licensec under GPL-3.0 thing if you're a badge or law nerd the p
 [This Repo's License](LICENSE.md)
 [Third Party License](THIRD_PARTY_LICENSES.md)
 
-all the third party usage placed under vendor subfolder with their respective license so... don't make me say those as if I am in a tux 
-you got the idea <3
+all the third party files placed under vendor subfolder with their respective license so... don't make me say those as if I am in a tux 
+you got the idea basically don't steal shit, respect to the MD4C and go feral about the rest luv u <3 OwO
