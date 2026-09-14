@@ -35,7 +35,7 @@ int main(void)
     int client_sock = -1;
     sqlite3 *db = set_db();
 
-    if (!db) return(EXIT_FAILURE);
+    if (!db) { return(EXIT_FAILURE); }
 
     struct sockaddr_in server_addr = {0};
     struct sockaddr_in client_addr = {0};

@@ -446,24 +446,25 @@ static int form_field(const char *body, const char *name, char *out, size_t capa
     for (const char *field = body ? body : ""; *field;) {
         const char *end = strchr(field, '&');
         size_t length = end ? (size_t)(end - field) : strlen(field);
-        if (length > name_length && strncmp(field, name, name_length) == 0 &&
-            field[name_length] == '=') {
+        if (length > name_length && strncmp(field, name, name_length) == 0 && field[name_length] == '=') {
             size_t value_length = length - name_length - 1;
-            if (found || value_length >= capacity) return(-1);
+            if (found || value_length >= capacity){ return(-1); }
             memcpy(out, field + name_length + 1, value_length);
             out[value_length] = '\0';
             for (const char *encoded = out; *encoded; encoded++) {
                 if (*encoded != '%') continue;
-                if (strspn(encoded + 1, "0123456789abcdefABCDEF") < 2 ||
-                    (encoded[1] == '0' && encoded[2] == '0')) return(-1);
+                if (strspn(encoded + 1, "0123456789abcdefABCDEF") < 2 || (encoded[1] == '0' && encoded[2] == '0')){ return(-1); }
                 encoded += 2;
             }
+
             url_decode(out);
             found = 1;
         }
-        if (!end) break;
+
+        if (!end){ break; }
         field = end + 1;
     }
+
     return(found);
 }
 
@@ -482,6 +483,7 @@ void handle_complete(int client_sock, sqlite3 *db, const char *path, const char 
         !id_text[0] || strspn(id_text, "0123456789") != strlen(id_text) ||
         (strcmp(completed, "0") != 0 && strcmp(completed, "1") != 0) ||
         (return_to[0] && strcmp(return_to, "home") != 0 && strcmp(return_to, "detail") != 0)) {
+    
         send_http_response(client_sock, 400, "text/plain", "Invalid completion fields");
         return;
     }

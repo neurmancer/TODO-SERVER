@@ -3,60 +3,115 @@
 > A basic todo-server to keep track of your idaes (local network)
 
 _Yet again...I lowkey gotta change the title..._ 
-**Current README.md is not up-to-date**
 
-_'Sup? it's Neuro from two commits more in the future next commit will be about readme update but not that one..._ 
 
 > This project started as a proof of concept then started to get **bigger**
 and now I need a separate repo to keep developing it 
-> And yeah I am getting more and more corpo with building a *FUCKING* CRUD App (but I swear I won't put a tie trust me...it doesn't work yet either...so I can't say 'I built one' (yeah I am coping with that (and yeah I am using parens within parens again(_you can do nothing about it_(except complaining about how your eyes are bleeding)))))
+> And yeah I am getting more and more corpo with building a *FUCKING* CRUD App (I am not a corpo™)
+
+---
 
 ## Table of Contents 
 
-- [I'll add shit her eventually but rn just scroll](#table-of-contents)
+- [ToC](#table-of-contents)
 > and yeah I'll keep a bullet point in every repo just pointing the table of contents 
 
+- [Disclaimer](#disclaimer)
 
-### DEV BRANCH MISSONS 
+- [Shit I've Built](#features)
 
-> This is where I'll study networking on the fly while trying to make this shit better
-> Basically I copied the current main branch version from my other repo (Basic-C-Examples) where this started as a proof of concept project and I wanna focus on this for a while (Well that's a lie at this point I modularized it (or how tf u spell it))
+- [Bragging](#other-stuff)
 
-> Project will contain lots of comments across each file since I'll left my learning process visible (I mean this is the dev branch duh)
+- [Usage](#usage)
 
-### Possible Future paths for this project
+- [Legal Shit](#legal-stuff-and-licensing)
 
-- [X] A modular structure (well...kinda started)
-- [X] A basic focused-on-project web framework (to make my job easier not entrepriese level shit)
-- [X] A basic templating engine to use .html templates instead of what I am doing rn (Donish?)
-- [-] Database implementation (Kinda done but can't know for sure without testing)
+---
 
+### Disclaimer
 
-### Folders and files in the repo
+> The build system (build.sh) uses momenteraly sudo privs and **DO NOT** use it if you are not comfortable with that
+    - For further implementation details about it check [Othet stuff](#other-stuff)
 
-- main server file
-- a makefile with compile-time conf options
-- src subfolder for Quality of Life update (Yeah I am thinking my little web router as a basic minecraft mod)
-- frontend folder (which only includes index.html for now)
+--- 
 
+### Features
 
-### Compile Thing
+> A To-Do app that does the thing on localhost (for now) 
+
+- Implemented shit:
+-   A basic templating engine with my own syntax (I'd forget the syntax otherwise)
+-   Database for keeping shit sane and classified appropriately
+-   Basic router/ framework-ish behavior for handling requests
+-   Markdown style rendering support (Outsourced via MD4C)
+-   A randomized song selection 'cuz why not
+-   A cool front-end (really tho it looks dope!)
+
+--- 
+
+### Other stuff
+
+> This part is where I brag about execution/compiling specifications
+
+#### Developer&Local Server Test
+
+- If you want to use the server as a test server and tweak it according to your taste I highly **recommend** you to use the given Makefile
+- But local compiling requries changes in the source code itself because the current status of the soruce is build.sh competible and seeks
+the designed .server subfolder in $HOME instead of the local files you can put the folders there manually if you don't want the daemoization
+with : 
+```bash
+
+cd ~  && mkdir .server
+
+cp frontend  ~/.server && cp db  ~/.server # assuming you're in the TODO-SERVER folder
+
+```
 
 ```bash
 
-make # To build
-make clean # To clean-up the mess
-make MAIN=toChanTheSource.c TARGET=alsoTheOutput
+make    #compile the shit
+make clean  #clean the mess
+make run    # I mean that is pointless since you can just do ./server but I've added it already
 
-make rebuild
-make run    #Honestly...does anybody types that instead of ./output? anyways I added already it's 4 AM
 ```
 
 
+#### Full Build 
+
+**Important Shit**
+
+build.sh will use **sudo** privs for update, package installation, and moving server and server.service files to the said folders 
+If you haven't checked the code yourself or you don't trust the author (me) **DO NOT ALLOW**
+
+---
+- Full build file is not a mere build file the file does various tasks such as:
+
+-   Update system packages (on Arch and Debian/Ubuntu)
+-   Install dependencies
+-   Compiles the server
+-   creates server.service and moves it into /etc/systemd/system/
+-   moves the server into /usr/local/bin/
+-   cleans the residue of the build before leaving
+
+To use:
+
+```bash
+
+chmod +x build.sh #if not an executable already
+./build.sh  #To build the server
+./build.sh remove #To remove daemon and the service file (user db && frontend is presevered )
+./build.sh deletye #To delete db and frontend as well as unloading the daemon 
+
+```
+
+---
 
 
-## Third party appriciation: 
+### Legal Stuff and Licensing
 
-- This project uses MD4C to format the markdown syntax and the MD4C is under MIT license for license and the original MD4C repo check: https://github.com/mity/md4c/tree/master?tab=MIT-1-ov-file
+This project is licensec under GPL-3.0 thing if you're a badge or law nerd the proper sources are:
+[This Repo's License](LICENSE.md)
+[Third Party License](THIRD_PARTY_LICENSES.md)
 
-(I'll make this more legally binding but not today )
+all the third party usage placed under vendor subfolder with their respective license so... don't make me say those as if I am in a tux 
+you got the idea <3
