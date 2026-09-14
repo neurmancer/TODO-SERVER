@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <stdint.h>
+#include <fcntl.h>
 
 #ifndef BUF_SIZE
     #define BUF_SIZE 8192
@@ -33,7 +34,6 @@ static const HttpStatus status_table[] = {
     {501, "Not Implemented"}
 };
 
-//Initial Prototype is static but may change in the future
 static const char *get_status_meaning(int code)
 {
     for (size_t i = 0; i < sizeof(status_table) / sizeof(status_table[0]); i++) {
@@ -93,9 +93,10 @@ void send_request_error(int client_sock, int code)
     send_http_response(client_sock, code, "text/plain; charset=utf-8", get_status_meaning(code));
 }
 
-static void send_file_response(int client_sock, int code, FILE *file, size_t length)
+static void send_file_response(int client_sock, int code, const char *content_type,
+                               FILE *file, size_t length)
 {
-    if (send_headers(client_sock, code, "text/html; charset=utf-8", length, NULL) < 0)
+    if (send_headers(client_sock, code, content_type, length, NULL) < 0)
         return;
 
     off_t offset = 0;
@@ -106,7 +107,7 @@ static void send_file_response(int client_sock, int code, FILE *file, size_t len
         if (sent < 0 && errno == EINTR) continue;
         if (sent <= 0) {
             // Headers are already sent, so don't append a second HTTP response.
-            if (sent < 0) perror("sendfile failed");
+            if (sent < 0) { perror("sendfile failed"); }
             return;
         }
         length -= (size_t)sent;
@@ -122,7 +123,7 @@ static void send_rendered_page(int client_sock, const char *filename,
         send_http_response(client_sock, 500, "text/plain", "Could not render page");
         return;
     }
-    send_file_response(client_sock, 200, page, length);
+    send_file_response(client_sock, 200, "text/html; charset=utf-8", page, length);
     fclose(page);
 }
 
@@ -148,7 +149,9 @@ static char *escape_html(const char *text)
             size_t size = strlen(entity);
             memcpy(out, entity, size);
             out += size;
-        } else {
+        } 
+        
+        else {
             *out++ = *text;
         }
     }
@@ -168,8 +171,69 @@ void send_404(int client_sock, sqlite3 *db, const char *path, const char *body)
         send_http_response(client_sock, 404, "text/plain", "404 - Not Found");
         return;
     }
-    send_file_response(client_sock, 404, page, (size_t)info.st_size);
+    send_file_response(client_sock, 404, "text/html; charset=utf-8", page, (size_t)info.st_size);
     fclose(page);
+}
+
+// Walk from the public directory without following symlinks or parent paths.
+// Percent-encoded paths are intentionally rejected, rather than decoded as form data.
+static FILE *open_asset(const char *path, struct stat *info)
+{
+    char relative[512];
+    if (!path || path[0] != '/' || strlen(path) >= sizeof(relative) ||
+        strpbrk(path, "%\\") || path[strlen(path) - 1] == '/') return(NULL);
+    strcpy(relative, path + 1);
+
+    int fd = open("frontend", O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+    if (fd < 0) return(NULL);
+    char *save = NULL;
+    char *part = strtok_r(relative, "/", &save);
+    while (part) {
+        if (part[0] == '.') {
+            close(fd);
+            return(NULL);
+        }
+        char *next = strtok_r(NULL, "/", &save);
+        int flags = O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK;
+        if (next) flags |= O_DIRECTORY;
+        int child = openat(fd, part, flags);
+        close(fd);
+        if (child < 0) return(NULL);
+        fd = child;
+        part = next;
+    }
+    if (fstat(fd, info) < 0 || !S_ISREG(info->st_mode) || info->st_size < 0 ||
+        (uintmax_t)info->st_size > SIZE_MAX) {
+        close(fd);
+        return(NULL);
+    }
+    FILE *file = fdopen(fd, "rb");
+    if (!file) close(fd);
+    return(file);
+}
+
+static void send_asset(int client_sock, sqlite3 *db, const char *path,
+                       const char *body, const char *extension, const char *content_type)
+{
+    const char *suffix = path ? strrchr(path, '.') : NULL;
+    struct stat info;
+    FILE *file = suffix && strcmp(suffix, extension) == 0 ? open_asset(path, &info) : NULL;
+    if (!file) {
+        send_404(client_sock, db, path, body);
+        return;
+    }
+    send_file_response(client_sock, 200, content_type, file, (size_t)info.st_size);
+    fclose(file);
+}
+
+void send_css(int client_sock, sqlite3 *db, const char *path, const char *body)
+{
+    send_asset(client_sock, db, path, body, ".css", "text/css; charset=utf-8");
+}
+
+void send_js(int client_sock, sqlite3 *db, const char *path, const char *body)
+{
+    send_asset(client_sock, db, path, body, ".js", "text/javascript; charset=utf-8");
 }
 
 struct todo_list {

@@ -11,7 +11,7 @@ typedef struct {
     char method[8];
     char path[256];
     Handler handler;
-    int is_wildcard;   // 1 if path ends with *
+    int is_wildcard;   // A single * matches any part of the path.
 } Route;
 
 static Route routes[MAX_ROUTES];
@@ -27,8 +27,8 @@ int route(const char *method, const char *path, Handler handler) {
     }
 
     const char *wildcard = strchr(path, '*');
-    if (wildcard && wildcard[1] != '\0') {
-        fprintf(stderr, "Route wildcard must be at the end: %s\n", path);
+    if (wildcard && strchr(wildcard + 1, '*')) {
+        fprintf(stderr, "Route may contain only one wildcard: %s\n", path);
         return(-1);
     }
 
@@ -69,9 +69,13 @@ void handle_request(int client_sock, sqlite3 *db, const char *raw) {
         if (strcmp(r->method, method) != 0) continue;
 
         if (r->is_wildcard) {
-            // super simple: check if path starts with the part before * and that's fucking it
-            size_t len = strlen(r->path) - 1;
-            if (strncmp(path, r->path, len) == 0) {
+            const char *wildcard = strchr(r->path, '*');
+            size_t prefix_len = (size_t)(wildcard - r->path);
+            size_t suffix_len = strlen(wildcard + 1);
+            size_t path_len = strlen(path);
+            if (path_len >= prefix_len + suffix_len &&
+                strncmp(path, r->path, prefix_len) == 0 &&
+                strcmp(path + path_len - suffix_len, wildcard + 1) == 0) {
                 r->handler(client_sock, db, path, body);
                 return;
             }

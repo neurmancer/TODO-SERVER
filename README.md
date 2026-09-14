@@ -46,3 +46,28 @@ make MAIN=toChanTheSource.c TARGET=alsoTheOutput
 make rebuild
 make run    #Honestly...does anybody types that instead of ./output? anyways I added already it's 4 AM
 ```
+
+### CSS and JavaScript
+
+Run the server from the repository root. GET requests ending in `.css` or `.js`
+serve files from `frontend/`, including subdirectories: `/style.css` reads
+`frontend/style.css`, and `/js/app.js` reads `frontend/js/app.js`. Use absolute
+URLs in templates so assets also load on `/todos/123`:
+
+```html
+<link rel="stylesheet" href="/style.css">
+<script src="/js/app.js" defer></script>
+```
+
+The routes are registered in `main`; route patterns support a single `*` between
+a prefix and suffix, and the first matching registration wins. Query strings
+such as `?v=2` are ignored for routing. Files are sent unchanged with `text/css`
+or `text/javascript` and their byte length. Missing files, hidden path components,
+parent traversal, symlinks, and percent-encoded asset paths return 404.
+
+`make test` runs the local regression suites. When `referance/index.html` and
+`referance/style.css` are present, it also serves copies in a temporary frontend
+and extracts the HTML's inline scripts into an external JS fixture, checking the
+HTML, CSS, JS, content types, and response lengths. The reference files and the
+project database are left untouched. The local `tests/` and `referance/` folders
+are currently ignored by Git.

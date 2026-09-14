@@ -49,6 +49,8 @@ int main(void)
     }
 
     if (route("GET",  "/",        send_homepage) < 0 ||
+        route("GET",  "/*.css",   send_css) < 0 ||
+        route("GET",  "/*.js",    send_js) < 0 ||
         route("GET",  "/todos/*", send_todo_page) < 0 ||
         route("POST", "/",        handle_post) < 0 ||
         route("POST", "/update",  handle_update) < 0 || /*Longest if statement I've ever written so far*/
@@ -91,7 +93,7 @@ int main(void)
             goto rome;
         }
 
-        //Idle thread fuckery part
+        //Idle client fuckery part
         struct timeval timeout = {.tv_sec = 5};
         if (setsockopt(client_sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0 ||
             setsockopt(client_sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0) {

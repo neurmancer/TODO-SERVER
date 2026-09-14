@@ -4,43 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cyberspace</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 40px auto;
-            padding: 20px;
-            background: #111;
-            color: #eee;
-        }
-        input[type="text"] {
-            width: 70%;
-            padding: 10px;
-            font-size: 16px;
-        }
-        button {
-            padding: 10px 18px;
-            font-size: 16px;
-            cursor: pointer;
-            background: #4CAF50;
-            color: white;
-            border: none;
-        }
-        h1 {
-            color: #4CAF50;
-        }
-    </style>
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <h1>Create a new Todo</h1>
-
-    <form action="/" method="POST">
-        <input type="text" name="todo" placeholder="What's Today's Fuckery?" required>
-        <button type="submit">Create</button>
-    </form>
-
-    <hr>
-    <h2>Your todos</h2>
-    <ul>{{ todo_list }}</ul>
+    <header class="page-header">
+        <p class="eyebrow">// a little order in the chaos</p>
+        <h1>Cyberspace</h1>
+        <p>Your ideas. Your plans. <span class="purple-accent">Your todos.</span></p>
+    </header>
+    <main>
+        <section class="card" aria-labelledby="create-heading">
+            <h2 id="create-heading">// create a new todo</h2>
+            <form class="create-form" action="/" method="POST">
+                <label for="todo">What's Today's Fuckery?</label>
+                <div class="create-controls">
+                    <input id="todo" type="text" name="todo" placeholder="Drop your next idea here..." required>
+                    <button type="submit">Create <span aria-hidden="true">+</span></button>
+                </div>
+            </form>
+        </section>
+        <section class="todos-section" aria-labelledby="todos-heading">
+            <h2 id="todos-heading">// your todos</h2>
+            <ul class="todo-list">{{ todo_list }}</ul>
+        </section>
+    </main>
+    <footer class="footer">One thing at a time<span class="purple-accent">.</span></footer>
 </body>
 </html>

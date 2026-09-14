@@ -4,25 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <a href="/">Back to all todos</a>
-    <h1>{{ title }}</h1>
-    <p>Todo #{{ id }} · Created at Unix Epoch timestamp {{ created_at }}</p>
-    [[ done ]]
-        <p>DONE</p>
-    [[ else ]]
-        <p>Still to do</p>
-    [[ endif ]]
-    <form action="/update" method="POST">
-        <input type="hidden" name="id" value="{{ id }}">
-        <label for="content">Content</label><br>
-        <textarea id="content" name="content" rows="12" cols="70">{{ content }}</textarea><br>
-        <button type="submit">Save</button>
-    </form>
-    <form action="/delete" method="POST">
-        <input type="hidden" name="id" value="{{ id }}">
-        <button type="submit">Delete</button>
-    </form>
+    <main class="todo-page">
+        <a class="back-link" href="/">Back to all todos</a>
+        <h1>{{ title }}</h1>
+        <p>Todo #{{ id }} · Created at Unix Epoch timestamp {{ created_at }}</p>
+        [[ done ]]
+            <p>DONE</p>
+        [[ else ]]
+            <p>Still to do</p>
+        [[ endif ]]
+        <form action="/update" method="POST">
+            <input type="hidden" name="id" value="{{ id }}">
+            <label for="content">Content</label>
+            <textarea id="content" name="content" rows="12" cols="70">{{ content }}</textarea><br>
+            <button type="submit">Save</button>
+        </form>
+        <form action="/delete" method="POST">
+            <input type="hidden" name="id" value="{{ id }}">
+            <button type="submit">Delete</button>
+        </form>
+    </main>
 </body>
 </html>
