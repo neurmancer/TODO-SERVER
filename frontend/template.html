@@ -4,28 +4,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
+    <!--mwa I missed u <3  -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism-tomorrow.min.css" integrity="sha384-wFjoQjtV1y5jVHbt0p35Ui8aV8GVpEZkyF99OXWqP/eNJDU93D3Ugxkoyh6Y2I4A" crossorigin="anonymous">
     <link rel="stylesheet" href="/style.css">
+    <!-- Some web nerd sorcery that I stole -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js" integrity="sha384-xAgN7OCsK5s0d3G18tqRYrxy8hWsPA14E26TMh7Mi9ZM09vaz4EA0DBTl+80F5yC" crossorigin="anonymous" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-c.min.js" integrity="sha384-gaD4ncierlmWk42Z3BmTp37/z+Dqt8V4Wf74UjTvFeo+M+SgnEI6Ysd98pWhksQv" crossorigin="anonymous" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-cpp.min.js" integrity="sha384-NiOrAquf32LSG3Vuig99LKS03EZPUuM8a51NOp+XXsqx08hUVo3wbNWALY7K/2J8" crossorigin="anonymous" defer></script>
+    <script src="/jukebox.js" defer></script>
+    <script src="/editor.js" defer></script>
 </head>
 <body>
     <main class="todo-page">
-        <a class="back-link" href="/">Back to all todos</a>
+        <a class="back-link" href="/">Back to the dumpster</a>
         <h1>{{ title }}</h1>
-        <p>Todo #{{ id }} · Created at Unix Epoch timestamp {{ created_at }}</p>
+        <p>Shit to do vol:{{ id }} //Created at Unix Epoch timestamp {{ created_at }}</p>
         [[ done ]]
-            <p>DONE</p>
+            <div class="todo-status">
+                <form class="todo-toggle" action="/complete" method="POST">
+                    <input type="hidden" name="id" value="{{ id }}">
+                    <input type="hidden" name="completed" value="0">
+                    <button type="submit" class="binary-box is-done" data-value="1" aria-label="Mark as pending" title="Mark as pending"></button>
+                </form>
+            </div>
         [[ else ]]
-            <p>Still to do</p>
+            <div class="todo-status">
+                <form class="todo-toggle" action="/complete" method="POST">
+                    <input type="hidden" name="id" value="{{ id }}">
+                    <input type="hidden" name="completed" value="1">
+                    <button type="submit" class="binary-box" data-value="0" aria-label="Mark as done" title="Mark as done"></button>
+                </form>
+            </div>
         [[ endif ]]
-        <form action="/update" method="POST">
+        <section class="card markdown-preview" id="notes-preview" aria-labelledby="preview-heading">
+            <div class="notes-heading">
+                <h2 id="preview-heading">// your notes</h2>
+                <button type="button" id="edit-notes" aria-controls="notes-editor" aria-expanded="false">Edit</button>
+            </div>
+            <div class="markdown-body">{{ content_html }}</div>
+        </section>
+        <form id="notes-editor" action="/update" method="POST" hidden>
             <input type="hidden" name="id" value="{{ id }}">
-            <label for="content">Content</label>
-            <textarea id="content" name="content" rows="12" cols="70">{{ content }}</textarea><br>
-            <button type="submit">Save</button>
+            <label for="content"></label>
+            <p class="markdown-help" id="markdown-help">//Yk how to type markdown right?</p>
+            <textarea id="content" name="content" rows="12" cols="70" aria-describedby="markdown-help">{{ content }}</textarea><br>
+            <div class="editor-actions">
+                <button type="submit" id="save-notes">Save</button>
+                <button type="button" id="cancel-notes">Fuck it</button>
+            </div>
         </form>
         <form action="/delete" method="POST">
             <input type="hidden" name="id" value="{{ id }}">
-            <button type="submit">Delete</button>
+            <button type="submit">Nuke</button>
         </form>
     </main>
+    <div class="music-player" id="music-player" hidden></div>
+    <p class="music-status" id="music-status" role="status"></p>
+    <button type="button" class="music-btn" id="musicBtn" title="Play music" aria-label="Play music" aria-pressed="false">▶</button>
 </body>
 </html>

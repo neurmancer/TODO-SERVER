@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cyberspace</title>
     <link rel="stylesheet" href="/style.css">
+    <script src="/jukebox.js" defer></script>
 </head>
 <body>
     <header class="page-header">
         <p class="eyebrow">// a little order in the chaos</p>
-        <h1>Cyberspace</h1>
-        <p>Your ideas. Your plans. <span class="purple-accent">Your todos.</span></p>
+        <h1 class="glow">Cyberspace</h1>
+        <p>Think cool shit. <span class="she-loves-purple">Then Implement.</span></p>
     </header>
     <main>
         <section class="card" aria-labelledby="create-heading">
@@ -19,7 +20,7 @@
                 <label for="todo">What's Today's Fuckery?</label>
                 <div class="create-controls">
                     <input id="todo" type="text" name="todo" placeholder="Drop your next idea here..." required>
-                    <button type="submit">Create <span aria-hidden="true">+</span></button>
+                    <button type="submit">Concoct<span aria-hidden="true"></span></button>
                 </div>
             </form>
         </section>
@@ -28,6 +29,9 @@
             <ul class="todo-list">{{ todo_list }}</ul>
         </section>
     </main>
-    <footer class="footer">One thing at a time<span class="purple-accent">.</span></footer>
+    <footer class="footer">My beloved cc sending her regards from the back-end<span class="she-loves-purple">Mwa OwO</span></footer>
+    <div class="music-player" id="music-player" hidden></div>
+    <p class="music-status" id="music-status" role="status"></p>
+    <button type="button" class="music-btn" id="musicBtn" title="Play music" aria-label="Play music" aria-pressed="false">▶</button>
 </body>
 </html>

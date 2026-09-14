@@ -2,6 +2,7 @@
 #include "handlers.h"
 #include "database.h"
 #include "template.h"
+#include "markdown.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +14,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #ifndef BUF_SIZE
     #define BUF_SIZE 8192
@@ -236,6 +238,26 @@ void send_js(int client_sock, sqlite3 *db, const char *path, const char *body)
     send_asset(client_sock, db, path, body, ".js", "text/javascript; charset=utf-8");
 }
 
+//You thought this wasn't gonna have a jukebox? Nah you're trippin'
+static const char *const jukebox_songs[] = {
+    "8QG7CEuUqMc",
+    NULL, /* you forget that you fucked. */
+};
+
+void send_jukebox_song(int client_sock, sqlite3 *db, const char *path, const char *body)
+{
+    (void)db; (void)path; (void)body;
+    unsigned int random;
+    sqlite3_randomness(sizeof(random), &random);
+    size_t count = sizeof(jukebox_songs) / sizeof(jukebox_songs[0]) - 1;
+    if (!count) {
+        send_http_response(client_sock, 404, "text/plain; charset=utf-8", "No songs configured");
+        return;
+    }
+    send_http_response(client_sock, 200, "text/plain; charset=utf-8",
+                       jukebox_songs[random % count]);
+}
+
 struct todo_list {
     FILE *stream;
     size_t count;
@@ -251,7 +273,17 @@ static void append_todo_link(struct todo_data *todo, void *userdata)
         list->failed = 1;
         return;
     }
-    if (fprintf(list->stream, "<li><a href=\"/todos/%d\">%s</a></li>\n",
+    if (fprintf(list->stream,
+                "<li class=\"todo-item\"><form class=\"todo-toggle\" action=\"/complete\" method=\"POST\">"
+                "<input type=\"hidden\" name=\"id\" value=\"%d\">"
+                "<input type=\"hidden\" name=\"completed\" value=\"%d\">"
+                "<input type=\"hidden\" name=\"return_to\" value=\"home\">"
+                "<button type=\"submit\" class=\"binary-box%s\" data-value=\"%d\" "
+                "aria-label=\"%s: %s\" title=\"%s\"></button></form>"
+                "<a href=\"/todos/%d\"><span class=\"todo-text\">%s</span></a></li>\n",
+                todo->id, todo->is_done ? 0 : 1, todo->is_done ? " is-done" : "",
+                todo->is_done ? 1 : 0, todo->is_done ? "Mark as pending" : "Mark as done",
+                title, todo->is_done ? "Mark as pending" : "Mark as done",
                 todo->id, title) < 0) list->failed = 1;
     free(title);
     list->count++;
@@ -314,11 +346,13 @@ void send_todo_page(int client_sock, sqlite3 *db, const char *path, const char *
     snprintf(created_at, sizeof(created_at), "%ld", todo.created_at);
     char *title = escape_html(todo.title);
     char *content = escape_html(todo.content);
-    if (!title || !content) {
+    char *content_html = render_markdown(todo.content);
+    if (!title || !content || !content_html) {
         send_http_response(client_sock, 500, "text/plain", "Could not render todo");
     } else {
         TemplateVar vars[] = {
             {"id", id_text}, {"title", title}, {"content", content},
+            {"content_html", content_html},
             {"done", todo.is_done ? "1" : "0"}, {"created_at", created_at}
         };
         send_rendered_page(client_sock, "frontend/template.html", vars,
@@ -326,6 +360,7 @@ void send_todo_page(int client_sock, sqlite3 *db, const char *path, const char *
     }
     free(title);
     free(content);
+    free(content_html);
 
     free(todo.title);
     free(todo.content);
@@ -380,6 +415,78 @@ void handle_post(int client_sock, sqlite3 *db, const char *path, const char *bod
 }
 
 
+/* Read one form field, rejecting duplicates, truncation and encoded NULs. */
+static int form_field(const char *body, const char *name, char *out, size_t capacity)
+{
+    size_t name_length = strlen(name);
+    int found = 0;
+    out[0] = '\0';
+    for (const char *field = body ? body : ""; *field;) {
+        const char *end = strchr(field, '&');
+        size_t length = end ? (size_t)(end - field) : strlen(field);
+        if (length > name_length && strncmp(field, name, name_length) == 0 &&
+            field[name_length] == '=') {
+            size_t value_length = length - name_length - 1;
+            if (found || value_length >= capacity) return(-1);
+            memcpy(out, field + name_length + 1, value_length);
+            out[value_length] = '\0';
+            for (const char *encoded = out; *encoded; encoded++) {
+                if (*encoded != '%') continue;
+                if (strspn(encoded + 1, "0123456789abcdefABCDEF") < 2 ||
+                    (encoded[1] == '0' && encoded[2] == '0')) return(-1);
+                encoded += 2;
+            }
+            url_decode(out);
+            found = 1;
+        }
+        if (!end) break;
+        field = end + 1;
+    }
+    return(found);
+}
+
+void handle_complete(int client_sock, sqlite3 *db, const char *path, const char *body)
+{
+    (void)path;
+    if (!db) {
+        send_http_response(client_sock, 500, "text/plain", "Database is dead");
+        return;
+    }
+
+    char id_text[64], completed[16], return_to[32];
+    if (form_field(body, "id", id_text, sizeof(id_text)) != 1 ||
+        form_field(body, "completed", completed, sizeof(completed)) != 1 ||
+        form_field(body, "return_to", return_to, sizeof(return_to)) < 0 ||
+        !id_text[0] || strspn(id_text, "0123456789") != strlen(id_text) ||
+        (strcmp(completed, "0") != 0 && strcmp(completed, "1") != 0) ||
+        (return_to[0] && strcmp(return_to, "home") != 0 && strcmp(return_to, "detail") != 0)) {
+        send_http_response(client_sock, 400, "text/plain", "Invalid completion fields");
+        return;
+    }
+
+    errno = 0;
+    long parsed_id = strtol(id_text, NULL, 10);
+    if (errno == ERANGE || parsed_id <= 0 || parsed_id > INT_MAX) {
+        send_http_response(client_sock, 400, "text/plain", "Invalid id");
+        return;
+    }
+
+    int id = (int)parsed_id;
+    enum STATUS status = set_todo_completed(db, id, completed[0] == '1');
+    if (status == TODO_NOT_FOUND) {
+        send_404(client_sock, db, path, body);
+        return;
+    }
+    if (status != OK) {
+        send_http_response(client_sock, 500, "text/plain", "Completion update failed");
+        return;
+    }
+
+    char location[64];
+    snprintf(location, sizeof(location), "/todos/%d", id);
+    send_redirect(client_sock, strcmp(return_to, "home") == 0 ? "/" : location);
+}
+
 void handle_update(int client_sock, sqlite3 *db, const char *path, const char *body)
 {
     (void)path;
@@ -389,46 +496,23 @@ void handle_update(int client_sock, sqlite3 *db, const char *path, const char *b
         return;
     }
 
-    char mutable_body[BUF_SIZE];
-
-    strncpy(mutable_body, body ? body : "", sizeof(mutable_body) - 1);
-
-    mutable_body[sizeof(mutable_body) - 1] = '\0';
-
-    char *id_start     = strstr(mutable_body, "id=");
-    char *content_start = strstr(mutable_body, "content=");
-
-    if (!id_start || !content_start) {
-        send_http_response(client_sock, 400, "text/plain", "Missing id or content");
+    char id_text[64], content[BUF_SIZE];
+    if (form_field(body, "id", id_text, sizeof(id_text)) != 1 ||
+        form_field(body, "content", content, sizeof(content)) != 1 ||
+        !id_text[0] || strspn(id_text, "0123456789") != strlen(id_text)) {
+        send_http_response(client_sock, 400, "text/plain", "Invalid id or content");
         return;
     }
 
-    id_start += 3;
-    char *id_end = strpbrk(id_start, "&\r\n");
-    if (id_end) *id_end = '\0';
-
-    content_start += 8;
-    char *content_end = strpbrk(content_start, "&\r\n");
-    if (content_end) *content_end = '\0';
-
-    char id_str[64] = {0};
-    char content[4096] = {0};
-
-    strncpy(id_str, id_start, sizeof(id_str) - 1);
-    strncpy(content, content_start, sizeof(content) - 1);
-
-    url_decode(id_str);
-    url_decode(content);
-
-    int id = atoi(id_str);
-
-    if (id <= 0) {
+    errno = 0;
+    long parsed_id = strtol(id_text, NULL, 10);
+    if (errno == ERANGE || parsed_id <= 0 || parsed_id > INT_MAX) {
         send_http_response(client_sock, 400, "text/plain", "Invalid id");
         return;
     }
+    int id = (int)parsed_id;
 
-    // completed is hardcoded to 0 for now add a checkbox later
-    if (update_todo(db, id, content, 0) != OK) {
+    if (update_todo(db, id, content) != OK) {
         fprintf(stderr, "Update failed for id %d\n", id);
         send_http_response(client_sock, 500, "text/plain", "Update failed");
         return;

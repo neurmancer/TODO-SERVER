@@ -8,7 +8,8 @@
 
 - [X] css and js support (well route table can handle it with a few tweaks)
 
-- [ ] markdown style rendering with a lightweight JS framework(yeah I am not gonna do that myself bruh nope! Enough finite automata for me)
-
+- [X] markdown style rendering with a lightweight JS framework(yeah I am not gonna do that myself bruh nope! Enough finite automata for me)
+(DONE AND GONE WITH A C HEADER FUCK JS) 
 - [X] Man...it's getting late
 
+- [ ] Make this shit a daemon...

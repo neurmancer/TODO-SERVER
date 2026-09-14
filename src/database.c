@@ -104,9 +104,9 @@ enum STATUS delete_todo(sqlite3 *db, int id)
     return((rc == SQLITE_DONE) ? OK : U_FUCKED);
 }
 
-enum STATUS update_todo(sqlite3 *db, int id, const char *content, int completed)
+enum STATUS update_todo(sqlite3 *db, int id, const char *content)
 {
-    const char *sql = "UPDATE TODOS SET Content = ?, Completed = ? WHERE ID = ?;";
+    const char *sql = "UPDATE TODOS SET Content = ? WHERE ID = ?;";
     sqlite3_stmt *stmt = NULL;
 
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK){
@@ -114,13 +114,30 @@ enum STATUS update_todo(sqlite3 *db, int id, const char *content, int completed)
     }
 
     sqlite3_bind_text(stmt, 1, content, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 2, completed);
-    sqlite3_bind_int(stmt, 3, id);
+    sqlite3_bind_int(stmt, 2, id);
 
     int rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
 
     return((rc == SQLITE_DONE) ? OK : U_FUCKED);
+}
+
+enum STATUS set_todo_completed(sqlite3 *db, int id, int completed)
+{
+    if (!db || id <= 0 || (completed != 0 && completed != 1)) return(U_FUCKED);
+
+    sqlite3_stmt *stmt = NULL;
+    if (sqlite3_prepare_v2(db, "UPDATE TODOS SET Completed = ? WHERE ID = ?;",
+                           -1, &stmt, NULL) != SQLITE_OK) return(U_FUCKED);
+
+    sqlite3_bind_int(stmt, 1, completed);
+    sqlite3_bind_int(stmt, 2, id);
+    int rc = sqlite3_step(stmt);
+    int changed = sqlite3_changes(db);
+    sqlite3_finalize(stmt);
+
+    if (rc != SQLITE_DONE) return(U_FUCKED);
+    return(changed ? OK : TODO_NOT_FOUND);
 }
 
 enum STATUS get_todo(sqlite3 *db, int id, struct todo_data *out)

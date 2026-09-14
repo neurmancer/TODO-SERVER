@@ -1,4 +1,3 @@
-/* Based on referance/style.css: dark cards, purple accents, green hover glow. */
 :root {
     color-scheme: dark;
     --background: #0d1117;
@@ -43,8 +42,19 @@ h2 {
     font-size: 1.15rem;
 }
 
+.glow {
+    color: var(--purple);
+    text-shadow: 0 0 3px rgba(57, 255, 20, 0.6), 0 0 12px rgba(57, 255, 20, 0.3), 0 0 20px rgba(57, 255, 20, 0.15);
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from { text-shadow: 0 0 3px rgba(57, 255, 20, 0.6), 0 0 12px rgba(57, 255, 20, 0.3), 0 0 20px rgba(57, 255, 20, 0.15); }
+    to { text-shadow: 0 0 4px rgba(57, 255, 20, 0.75), 0 0 16px rgba(57, 255, 20, 0.45), 0 0 26px rgba(57, 255, 20, 0.25); }
+}
+
 p { margin: 16px 0; }
-.purple-accent { color: var(--purple); font-weight: bold; }
+.she-loves-purple { color: var(--purple); font-weight: bold; }
 
 a {
     color: var(--purple);
@@ -121,17 +131,24 @@ input:focus-visible, textarea:focus-visible {
 .todos-section > h2 { border-bottom: 1px solid var(--border); padding-bottom: 12px; }
 .todo-list { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
 .todo-list > li { color: var(--muted); overflow-wrap: anywhere; }
+.todo-list > .todo-item { display: flex; align-items: center; gap: 14px; }
 
 .todo-list > li > a {
     display: block;
-    margin: -22px -26px;
-    padding: 22px 26px;
+    flex: 1;
+    min-width: 0;
+    margin: -22px -26px -22px 0;
+    padding: 22px 26px 22px 0;
     border-radius: 10px;
     font-weight: bold;
 }
 
+.todo-text { min-width: 0; }
+.todo-status { display: flex; align-items: center; gap: 14px; }
+
 .back-link { display: inline-block; margin-bottom: 25px; border-bottom: 1px dashed; }
 .todo-page form { margin: 24px 0; }
+.todo-toggle, .todo-page .todo-toggle { margin: 0; flex-shrink: 0; }
 
 .footer {
     margin-top: 64px;
@@ -146,11 +163,291 @@ input:focus-visible, textarea:focus-visible {
     body { padding: 25px 15px; }
     .page-header { margin-top: 10px; }
     .card, .todo-list > li { padding: 18px 16px; }
-    .todo-list > li > a { margin: -18px -16px; padding: 18px 16px; }
+    .todo-list > li > a { margin: -18px -16px -18px 0; padding: 18px 16px 18px 0; }
     .create-controls { flex-direction: column; }
     .create-controls button { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none; }
+    .glow { animation: none; }
+}
+
+/* ====== MARKDOWN ==== */
+.markdown-preview { margin: 24px 0; }
+.notes-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.notes-heading h2 { margin: 0; }
+.editor-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+#content { tab-size: 4; }
+.markdown-help { color: var(--muted); font-size: 0.85rem; }
+.markdown-body { color: #c9d1d9; overflow-wrap: anywhere; }
+.markdown-body:empty::before { content: "No notes yet. Add some Markdown below."; color: var(--muted); }
+.markdown-body > :first-child { margin-top: 0; }
+.markdown-body > :last-child { margin-bottom: 0; }
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3,
+.markdown-body h4, .markdown-body h5, .markdown-body h6 {
+    margin: 1.4em 0 0.6em;
+    color: var(--purple);
+    line-height: 1.3;
+    letter-spacing: normal;
+    text-shadow: none;
+}
+.markdown-body h1 { font-size: 1.8rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.markdown-body h2 { font-size: 1.5rem; }
+.markdown-body h3 { font-size: 1.25rem; }
+.markdown-body h4 { font-size: 1.1rem; }
+.markdown-body h5, .markdown-body h6 { font-size: 1rem; }
+.markdown-body ul, .markdown-body ol { margin: 12px 0; padding-left: 26px; }
+.markdown-body li { margin: 6px 0; }
+.markdown-body li > ul, .markdown-body li > ol { margin: 4px 0; }
+.markdown-body a { text-decoration: underline; text-underline-offset: 3px; }
+.markdown-body blockquote {
+    margin: 16px 0;
+    padding: 2px 16px;
+    border-left: 3px solid var(--green);
+    background: var(--background);
+    color: var(--muted);
+}
+.markdown-body code {
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--background);
+    color: var(--green);
+    font-family: inherit;
+    font-size: 0.9em;
+}
+.markdown-body pre {
+    margin: 16px 0;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+    overflow-x: auto;
+}
+.markdown-body pre code { padding: 0; background: transparent; font-size: 0.9rem; }
+.markdown-body table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 16px 0; }
+.markdown-body th, .markdown-body td { padding: 8px 12px; border: 1px solid var(--border); }
+.markdown-body th { background: var(--background); color: var(--purple); }
+.markdown-body img { max-width: 100%; height: auto; border-radius: 6px; }
+.markdown-body hr { margin: 24px 0; border: 0; border-top: 1px solid var(--border); }
+.markdown-body .task-list-item { list-style: none; }
+.markdown-body .task-list-item-checkbox { margin-right: 8px; accent-color: var(--green); }
+
+/* ====== SYNTAX HIGHLIGHT ==== */
+.markdown-body pre[class*="language-"] {
+    background: var(--background);
+    margin: 16px 0;
+    padding: 16px;
+}
+.markdown-body code[class*="language-"] {
+    color: #c9d1d9;
+    text-shadow: none;
+    tab-size: 4;
+}
+.markdown-body pre code[class*="language-"] { white-space: pre; }
+
+
+/* This is where I'll fuck with CLI highlight */
+.markdown-body .token.keyword { color: #c084fc; }
+.markdown-body .token.string { color: #39ff14; }
+.markdown-body .token.comment { color: #8b949e; }
+.markdown-body .token.function { color: #58a6ff; }
+.markdown-body .token.number { color: #ffb86c; }
+.markdown-body .token.operator { color: #ff79c6; }
+
+
+/* ====== GLITCH ==== */
+/* The little box itself */
+.binary-box {
+    padding: 0;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--background);
+    display: grid;
+    place-items: center;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.05rem;
+    font-weight: bold;
+    color: var(--muted);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+}
+
+/* The actual 0 / 1 character */
+.binary-box::before {
+    content: attr(data-value);
+    position: relative;
+    z-index: 2;
+    animation: glitch-0 2.4s infinite linear alternate-reverse;
+}
+
+/* Glitch layers (the chaos) */
+.binary-box::after {
+    content: attr(data-value);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    color: var(--green);
+    opacity: 0.7;
+    animation: glitch-layer 1.8s infinite steps(2);
+    pointer-events: none;
+}
+
+
+.binary-box.is-done {
+    border-color: var(--green);
+    box-shadow: 0 0 10px rgba(57, 255, 20, 0.25);
+    color: var(--green);
+}
+
+.binary-box.is-done::before {
+    animation: glitch-1 1.6s infinite linear alternate-reverse;
+}
+
+.binary-box.is-done::after {
+    color: var(--purple);
+    animation: glitch-layer-done 1.1s infinite steps(3);
+}
+
+.todo-item:hover .binary-box,
+.todo-item:focus-within .binary-box {
+    border-color: var(--purple);
+    box-shadow: 0 0 8px rgba(192, 132, 252, 0.2);
+}
+
+.todo-item:hover .binary-box.is-done,
+.todo-item:focus-within .binary-box.is-done {
+    border-color: var(--green);
+    box-shadow: 0 0 12px rgba(57, 255, 20, 0.35);
+}
+
+/* ===== GLITCH KEYFRAMES ===== (Cool as fuck)*/ 
+
+
+@keyframes glitch-0 {
+    0%   { transform: translate(0); text-shadow: 1px 0 var(--green), -1px 0 var(--purple); }
+    15%  { transform: translate(-1px, 1px); text-shadow: -2px 0 var(--green), 2px 0 var(--purple); }
+    30%  { transform: translate(1px, -1px); text-shadow: 2px 0 #39ff14, -2px 0 #c084fc; }
+    45%  { transform: translate(-1px, 0); text-shadow: -1px 0 var(--green), 1px 0 var(--purple); }
+    60%  { transform: translate(1px, 1px); text-shadow: 1px 0 #39ff14, -1px 0 #c084fc; }
+    75%  { transform: translate(0, -1px); text-shadow: -2px 0 var(--green), 2px 0 var(--purple); }
+    90%  { transform: translate(-1px, 1px); text-shadow: 1px 0 var(--green), -1px 0 var(--purple); }
+    100% { transform: translate(0); text-shadow: 0 0 transparent; }
+}
+
+@keyframes glitch-1 {
+    0%   { transform: translate(0); text-shadow: 1px 0 var(--purple), -1px 0 var(--green); }
+    20%  { transform: translate(1px, -1px); text-shadow: -1px 0 var(--purple), 1px 0 var(--green); }
+    40%  { transform: translate(-1px, 0); text-shadow: 2px 0 #c084fc, -2px 0 #39ff14; }
+    60%  { transform: translate(0, 1px); text-shadow: -1px 0 var(--purple), 1px 0 var(--green); }
+    80%  { transform: translate(1px, 0); text-shadow: 1px 0 #c084fc, -1px 0 #39ff14; }
+    100% { transform: translate(0); text-shadow: 0 0 transparent; }
+}
+
+/* The background glitch layers */
+@keyframes glitch-layer {
+    0%   { clip-path: inset(0 0 85% 0); transform: translate(-2px, 1px); }
+    20%  { clip-path: inset(20% 0 40% 0); transform: translate(2px, -1px); }
+    40%  { clip-path: inset(60% 0 10% 0); transform: translate(-1px, 2px); }
+    60%  { clip-path: inset(10% 0 70% 0); transform: translate(1px, -2px); }
+    80%  { clip-path: inset(40% 0 30% 0); transform: translate(-2px, 0); }
+    100% { clip-path: inset(80% 0 5% 0); transform: translate(0, 1px); }
+}
+
+@keyframes glitch-layer-done {
+    0%   { clip-path: inset(0 0 90% 0); transform: translate(1px, 0); opacity: 0.5; }
+    25%  { clip-path: inset(15% 0 50% 0); transform: translate(-1px, 1px); opacity: 0.7; }
+    50%  { clip-path: inset(55% 0 15% 0); transform: translate(1px, -1px); opacity: 0.4; }
+    75%  { clip-path: inset(5% 0 75% 0); transform: translate(-1px, 0); opacity: 0.65; }
+    100% { clip-path: inset(70% 0 10% 0); transform: translate(0, 1px); opacity: 0.5; }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+    .binary-box::before,
+    .binary-box::after,
+    .binary-box.is-done::before,
+    .binary-box.is-done::after {
+        animation: none;
+        text-shadow: none;
+    }
+
+    .binary-box::after { display: none; }
+}
+
+/* ====== SHITTY JUKEBOX ==== */
+.music-btn {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 64px;
+    height: 64px;
+    border: 2px solid #39ff14;
+    border-radius: 10px;
+    padding: 0;
+    background: var(--background);
+    color: #39ff14;
+    font-size: 1.6em;
+    font-family: 'Courier New', Courier, monospace;
+    cursor: pointer;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        0 0 12px #39ff14,
+        0 0 24px rgba(57, 255, 20, 0.35);
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+    user-select: none;
+}
+
+.music-btn:hover, .music-btn:focus-visible {
+    box-shadow:
+        0 0 20px #39ff14,
+        0 0 40px rgba(57, 255, 20, 0.55),
+        0 0 60px rgba(57, 255, 20, 0.25);
+    text-shadow: 0 0 10px #39ff14;
+    transform: scale(1.08);
+}
+
+.music-btn.playing {
+    background: rgba(57, 255, 20, 0.08);
+    box-shadow:
+        0 0 18px #39ff14,
+        0 0 35px rgba(57, 255, 20, 0.5);
+}
+
+.music-player {
+    display: none;
+}
+
+.music-btn:disabled { cursor: wait; opacity: 0.65; }
+.music-status {
+    position: fixed;
+    right: 108px;
+    bottom: 28px;
+    max-width: min(320px, calc(100vw - 136px));
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: var(--background);
+    color: var(--muted);
+    font-size: 0.85rem;
+    z-index: 9999;
+}
+.music-status:empty { display: none; }
+body { padding-bottom: 112px; }
+
+@media (prefers-reduced-motion: reduce) {
+    .music-btn { transition: none; }
+    .music-btn:hover, .music-btn:focus-visible { transform: none; }
 }

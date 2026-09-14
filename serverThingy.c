@@ -52,7 +52,9 @@ int main(void)
         route("GET",  "/*.css",   send_css) < 0 ||
         route("GET",  "/*.js",    send_js) < 0 ||
         route("GET",  "/todos/*", send_todo_page) < 0 ||
+        route("GET",  "/jukebox/song", send_jukebox_song) < 0 ||
         route("POST", "/",        handle_post) < 0 ||
+        route("POST", "/complete", handle_complete) < 0 ||
         route("POST", "/update",  handle_update) < 0 || /*Longest if statement I've ever written so far*/
         route("POST", "/delete",  handle_delete) < 0) { goto rome; } 
 

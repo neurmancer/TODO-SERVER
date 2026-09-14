@@ -15,7 +15,7 @@ struct todo_data {
 };
 
 
-enum STATUS {OK, U_FUCKED=-1};  //Yeah I still refuse to put the fucking tie on!
+enum STATUS {OK, TODO_NOT_FOUND, U_FUCKED=-1};  //Yeah I still refuse to put the fucking tie on!
 
 void url_decode(char *str);
 enum STATUS get_env(char *buf, size_t size);
