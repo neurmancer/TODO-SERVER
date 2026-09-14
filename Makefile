@@ -37,14 +37,3 @@ rebuild: clean all
 run: $(TARGET)
 	./$(TARGET)
 
-## Test clause (it's in .gitignore bruh don't try to use this)
-test: tests/test_request tests/render_driver
-	./tests/test_request
-	python3 tests/test_rendering.py
-	node --test tests/test_jukebox.js tests/test_editor.js
-
-tests/test_request: tests/test_request.c $(sort $(ALL_SOURCES)) $(HEADERS)
-	$(CC) -Wall -Wextra -Werror -Isrc -o $@ tests/test_request.c $(sort $(ALL_SOURCES)) -Wl,--wrap=recv -Wl,--wrap=send -lsqlite3
-
-tests/render_driver: tests/render_driver.c $(sort $(ALL_SOURCES)) $(HEADERS)
-	$(CC) -Wall -Wextra -Werror -Isrc -o $@ tests/render_driver.c $(sort $(ALL_SOURCES)) -Wl,--wrap=recv -Wl,--wrap=send -lsqlite3
