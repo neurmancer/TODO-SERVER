@@ -1,6 +1,9 @@
-# TODO-SERVER
+# BASIC TODO-SERVER
 
 > A basic todo-server to keep track of your idaes (local network)
+
+_Yet again...I lowkey gotta change the title..._ 
+**Current README.md is not up-to-date**
 
 > This project started as a proof of concept then started to get **bigger**
 and now I need a separate repo to keep developing it 
@@ -51,3 +54,5 @@ make run    #Honestly...does anybody types that instead of ./output? anyways I a
 ## Third party appriciation: 
 
 - This project uses MD4C to format the markdown syntax and the MD4C is under MIT license for license and the original MD4C repo check: https://github.com/mity/md4c/tree/master?tab=MIT-1-ov-file
+
+(I'll make this more legally binding but not today )
