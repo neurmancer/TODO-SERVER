@@ -51,6 +51,9 @@ int main(void)
     if (route("GET",  "/",        send_homepage) < 0 ||
         route("GET",  "/*.css",   send_css) < 0 ||
         route("GET",  "/*.js",    send_js) < 0 ||
+        route("GET",  "/favicon.svg", send_favicon) < 0 ||
+        route("GET",  "/favicon.png", send_favicon) < 0 ||
+        route("GET",  "/favicon.ico", send_favicon) < 0 ||
         route("GET",  "/todos/*", send_todo_page) < 0 ||
         route("GET",  "/jukebox/song", send_jukebox_song) < 0 ||
         route("POST", "/",        handle_post) < 0 ||

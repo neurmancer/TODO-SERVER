@@ -119,8 +119,13 @@ static void send_file_response(int client_sock, int code, const char *content_ty
 static void send_rendered_page(int client_sock, const char *filename,
                                TemplateVar *vars, size_t count)
 {
+    char page_path[PATH_MAX];
+    if (get_server_path(page_path, sizeof(page_path), filename) != OK) {
+        send_http_response(client_sock, 500, "text/plain", "Could not resolve page path");
+        return;
+    }
     size_t length = 0;
-    FILE *page = render_template_file(filename, vars, count, &length);
+    FILE *page = render_template_file(page_path, vars, count, &length);
     if (!page) {
         send_http_response(client_sock, 500, "text/plain", "Could not render page");
         return;
@@ -164,7 +169,9 @@ static char *escape_html(const char *text)
 void send_404(int client_sock, sqlite3 *db, const char *path, const char *body)
 {
     (void)db; (void)path; (void)body;
-    FILE *page = fopen("frontend/404_not_found.html", "rb");
+    char page_path[PATH_MAX];
+    FILE *page = get_server_path(page_path, sizeof(page_path), "frontend/404_not_found.html") == OK
+        ? fopen(page_path, "rb") : NULL;
     struct stat info;
     if (!page || fstat(fileno(page), &info) < 0 || !S_ISREG(info.st_mode) ||
         info.st_size < 0 || (uintmax_t)info.st_size > SIZE_MAX) {
@@ -186,7 +193,9 @@ static FILE *open_asset(const char *path, struct stat *info)
         strpbrk(path, "%\\") || path[strlen(path) - 1] == '/') return(NULL);
     strcpy(relative, path + 1);
 
-    int fd = open("frontend", O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+    char frontend_path[PATH_MAX];
+    if (get_server_path(frontend_path, sizeof(frontend_path), "frontend") != OK) return(NULL);
+    int fd = open(frontend_path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
     if (fd < 0) return(NULL);
     char *save = NULL;
     char *part = strtok_r(relative, "/", &save);
@@ -236,6 +245,19 @@ void send_css(int client_sock, sqlite3 *db, const char *path, const char *body)
 void send_js(int client_sock, sqlite3 *db, const char *path, const char *body)
 {
     send_asset(client_sock, db, path, body, ".js", "text/javascript; charset=utf-8");
+}
+
+void send_favicon(int client_sock, sqlite3 *db, const char *path, const char *body)
+{
+    if (path && strcmp(path, "/favicon.png") == 0) {
+        send_asset(client_sock, db, path, body, ".png", "image/png");
+    } else if (path && strcmp(path, "/favicon.svg") == 0) {
+        send_asset(client_sock, db, path, body, ".svg", "image/svg+xml");
+    } else if (path && strcmp(path, "/favicon.ico") == 0) {
+        send_asset(client_sock, db, path, body, ".ico", "image/vnd.microsoft.icon");
+    } else {
+        send_404(client_sock, db, path, body);
+    }
 }
 
 //You thought this wasn't gonna have a jukebox? Nah you're trippin'

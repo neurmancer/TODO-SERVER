@@ -20,6 +20,7 @@ enum STATUS {OK, TODO_NOT_FOUND, U_FUCKED=-1};  //Yeah I still refuse to put the
 void url_decode(char *str);
 enum STATUS get_env(char *buf, size_t size);
 enum STATUS get_cwd(char *buffer, size_t size);
+enum STATUS get_server_path(char *buffer, size_t size, const char *relative_path);
 
 
 #endif

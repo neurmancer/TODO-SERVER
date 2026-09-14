@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
     <!--mwa I missed u <3  -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism-tomorrow.min.css" integrity="sha384-wFjoQjtV1y5jVHbt0p35Ui8aV8GVpEZkyF99OXWqP/eNJDU93D3Ugxkoyh6Y2I4A" crossorigin="anonymous">
     <link rel="stylesheet" href="/style.css">
@@ -18,7 +19,8 @@
     <main class="todo-page">
         <a class="back-link" href="/">Back to the dumpster</a>
         <h1>{{ title }}</h1>
-        <p>Shit to do vol:{{ id }} //Created at Unix Epoch timestamp {{ created_at }}</p>
+        <p>Shit to do vol:{{ id }}</p>
+        <p>//Created at Unix Epoch timestamp {{ created_at }}</p>
         [[ done ]]
             <div class="todo-status">
                 <form class="todo-toggle" action="/complete" method="POST">
@@ -38,7 +40,7 @@
         [[ endif ]]
         <section class="card markdown-preview" id="notes-preview" aria-labelledby="preview-heading">
             <div class="notes-heading">
-                <h2 id="preview-heading">// your notes</h2>
+                <h2 id="preview-heading">//Notes</h2>
                 <button type="button" id="edit-notes" aria-controls="notes-editor" aria-expanded="false">Edit</button>
             </div>
             <div class="markdown-body">{{ content_html }}</div>

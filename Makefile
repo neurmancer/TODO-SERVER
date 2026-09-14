@@ -10,8 +10,9 @@ ALL_SOURCES = $(SOURCES) $(MD4C_SOURCES)
 HEADERS = $(wildcard src/*.h vendor/md4c/*.h)
 TARGET    ?= server
 CC        ?= gcc
-CFLAGS    ?= -Wall -Wextra -lsqlite3
+CFLAGS    ?= -Wall -Wextra
 LDFLAGS   ?= 
+LDLIBS    ?= -lsqlite3
 
 
 OBJS = $(MAIN:.c=.o) $(ALL_SOURCES:.c=.o)
@@ -21,7 +22,7 @@ OBJS = $(MAIN:.c=.o) $(ALL_SOURCES:.c=.o)
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 	@echo "→ Built $(TARGET)"
 
 %.o: %.c $(HEADERS)

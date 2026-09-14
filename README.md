@@ -5,6 +5,8 @@
 _Yet again...I lowkey gotta change the title..._ 
 **Current README.md is not up-to-date**
 
+_'Sup? it's Neuro from two commits more in the future next commit will be about readme update but not that one..._ 
+
 > This project started as a proof of concept then started to get **bigger**
 and now I need a separate repo to keep developing it 
 > And yeah I am getting more and more corpo with building a *FUCKING* CRUD App (but I swear I won't put a tie trust me...it doesn't work yet either...so I can't say 'I built one' (yeah I am coping with that (and yeah I am using parens within parens again(_you can do nothing about it_(except complaining about how your eyes are bleeding)))))
@@ -49,6 +51,8 @@ make MAIN=toChanTheSource.c TARGET=alsoTheOutput
 make rebuild
 make run    #Honestly...does anybody types that instead of ./output? anyways I added already it's 4 AM
 ```
+
+
 
 
 ## Third party appriciation: 

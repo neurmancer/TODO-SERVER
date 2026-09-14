@@ -4,7 +4,7 @@
 
 - [X] use goto for cleanup pattern in all codebase
 
-- [ ] Run valgrind to see if shit's leakign
+- [X] Run valgrind to see if shit's leakign
 
 - [X] css and js support (well route table can handle it with a few tweaks)
 
@@ -12,4 +12,10 @@
 (DONE AND GONE WITH A C HEADER FUCK JS) 
 - [X] Man...it's getting late
 
-- [ ] Make this shit a daemon...
+- [X] Make this shit a daemon...
+
+- [ ] Lol scope creep is partially finished and I am out of scope for a to-do app but add more song urls to the array is one of them
+
+- [ ] Handle the HTTPS thing and add auth shit etc...
+
+- [ ] use errno for error handling and reroute the logs to journal

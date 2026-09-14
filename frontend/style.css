@@ -42,6 +42,17 @@ h2 {
     font-size: 1.15rem;
 }
 
+
+.glow {
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from { text-shadow: 0 0 10px #39ff14; }
+    to { text-shadow: 0 0 20px #39ff14, 0 0 30px #39ff14; }
+}
+
+/*
 .glow {
     color: var(--purple);
     text-shadow: 0 0 3px rgba(57, 255, 20, 0.6), 0 0 12px rgba(57, 255, 20, 0.3), 0 0 20px rgba(57, 255, 20, 0.15);
@@ -52,6 +63,8 @@ h2 {
     from { text-shadow: 0 0 3px rgba(57, 255, 20, 0.6), 0 0 12px rgba(57, 255, 20, 0.3), 0 0 20px rgba(57, 255, 20, 0.15); }
     to { text-shadow: 0 0 4px rgba(57, 255, 20, 0.75), 0 0 16px rgba(57, 255, 20, 0.45), 0 0 26px rgba(57, 255, 20, 0.25); }
 }
+    Trying different shit
+*/
 
 p { margin: 16px 0; }
 .she-loves-purple { color: var(--purple); font-weight: bold; }

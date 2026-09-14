@@ -1,9 +1,9 @@
 #include "utils.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <unitypes.h>
 
 void url_decode(char *str)
 {
@@ -49,6 +49,22 @@ enum STATUS get_cwd(char *buffer,size_t size)
     return(OK);
 }
 
+
+enum STATUS get_server_path(char *buffer, size_t size, const char *relative_path)
+{
+    const char *home = getenv("HOME");
+    if (!home || home[0] != '/') {
+        fprintf(stderr, "HOME must be set to an absolute path\n");
+        return(U_FUCKED);
+    }
+
+    int written = snprintf(buffer, size, "%s/.server/%s", home, relative_path);
+    if (written < 0 || (size_t)written >= size) {
+        fprintf(stderr, "Server path too long\n");
+        return(U_FUCKED);
+    }
+    return(OK);
+}
 
 enum STATUS get_env(char *buf, size_t size)
 {

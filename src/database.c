@@ -5,36 +5,15 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <limits.h>
 #include "utils.h"
-
-#define BUFFER_SIZE 512
-#define TODO_RELATIVE_DB "/src/db/todo.db"
-
-/*
-
-    for now this database still uses the relative TODO but I'll change the get_cwd thign with getenv thing 
-    I may add a build.sh file to automate all the dir creation/compiling/and daemonizing process but that would require root
-    root which isn't a problem for me but...on github it's dangerous for other people I guess
-
-
-    Besides I literally learned and forgot sqlite3 in 2 days so this knowledge is partially a lost-media to me 
-    
-*/
-
 
 sqlite3 *set_db(void)
 {
     sqlite3 *database = NULL;
-    char env_buffer[BUFFER_SIZE] = {0};
-    char db_path[BUFFER_SIZE] = {0};
+    char db_path[PATH_MAX];
 
-    if (get_cwd(env_buffer, BUFFER_SIZE) == -1){ return(NULL); }
-
-    int written = snprintf(db_path, BUFFER_SIZE, "%s%s", env_buffer, TODO_RELATIVE_DB);
-    if (written < 0 || (size_t)written >= BUFFER_SIZE) {
-        fprintf(stderr, "Database path too long, you absolute unit\n");
-        return(NULL);
-    }
+    if (get_server_path(db_path, sizeof(db_path), "db/todo.db") != OK) return(NULL);
 
     int rc = sqlite3_open(db_path, &database);
     if (rc != SQLITE_OK) {
