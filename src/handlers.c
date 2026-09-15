@@ -261,8 +261,30 @@ void send_favicon(int client_sock, sqlite3 *db, const char *path, const char *bo
 }
 
 //You thought this wasn't gonna have a jukebox? Nah you're trippin'
+//Selecting the songs rigorusly was harder than the whole fucking project lol
 static const char *const jukebox_songs[] = {
-    "8QG7CEuUqMc",
+    "8QG7CEuUqMc",  // Everytime we touch
+    "fDdbTsw0Vuk",  // I'm blue (rock version)  
+    "ZW5W-MEvr5w",  // Sexy naugthy bitch me (I dunno why I love this song either so don't question)
+    "ycQgsMqnmhs",  // Hot N Cold
+    "2Mkq6GFLIsk",  // Murder one (metallica's here too...)
+    "Vw32WZJSMU4",  // The Zombie Song
+    "QFcv5Ma8u8k",  // Forgot about Dre (yeah eminem's here too)
+    "HOqYR-hYqsc",  // I kissed a girl but stero and left ear is gender swapped
+    "yd8jh9QYfEs",  // Don't stop the music
+    "fnzQISf8us4",  // Princess of the Night (Me OwO)
+    "Q2FzZSBD5LE", // Smoke on The Water
+    "zw79RVnlCb0", // Hellraiser 30th anniversary edition (R.I.P both of you legends)
+    "zUTh24Ke7V8", // Sugar Crash
+    "FpAk2Arf7eY", // S&M rock version
+    "PUY2CRpoUKY", // Slither 
+    "FLTchCiC0T0", // Seek&Destroy
+    //Lol the rest of the songs from that point on formed a lore with titles and I didn't intend that
+    "Dy4HA3vUv2c", //Don't fear the reaper
+    "O5Kw41JAfG4", //Still loving you...
+    "Ll4NJs3NBIU", //Bad romance (halestorm version)
+    "GrD3dDUKxYY", // I hate everything about you
+    "yVSmiDJB", //Suicide Solution
     NULL, /* you forget that you fucked. */
 };
 

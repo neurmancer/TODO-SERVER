@@ -112,13 +112,13 @@ chmod +x build.sh #if not an executable already
 
 - I am not promising those but I do say there is a non-zero chance of those happen to exist in this repo one day
 
-- new error reporting using err (BSD version) to journal
+- new error reporting using err (BSD version) to journal (still uses perror but journalctl handled)
 
-- getting the device IP on runtime to make the server accessible to LAN instead of caging it only to localhost
+- getting the device IP on runtime to make the server accessible to LAN instead of caging it only to localhost (Done but need tweaks)
 
-- An HTTPS feature
+- An HTTPS feature (postponed)
 
-- And changed colors for highlighted c format markdown
+- And changed colors for highlighted c format markdown (left for the end user I am fine with the current colors)
 
 ---
 ### Legal Stuff and Licensing
