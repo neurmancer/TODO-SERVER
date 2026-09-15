@@ -29,7 +29,7 @@ $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJS) $(TARGET) tests/test_request tests/render_driver
+	rm -f $(OBJS) $(TARGET)
 	@echo "→ Cleaned"
 
 rebuild: clean all

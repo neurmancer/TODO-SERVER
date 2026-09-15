@@ -9,17 +9,18 @@ SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}.service"
 die() { echo "ERROR: $*" >&2; exit 1; }
 
 usage() {
-    echo "Usage: $0 [install|remove|delete|--help]"
+    echo "Usage: $0 [install|local|remove|delete|--help]"
     echo "  install  Upgrade packages, build, install, and start the server (default)."
+    echo '  local    Build here and copy frontend/database to $HOME/.server; skip service setup.'
     echo '  remove   Uninstall the service and executable; preserve $HOME/.server.'
     echo '  delete   Uninstall and permanently delete $HOME/.server/db and frontend.'
-    echo 'Both commands leave installed system packages in place.'
+    echo 'Remove and delete leave installed system packages in place.'
 }
 
 [[ $# -le 1 ]] || die "Expected at most one argument. Use --help for usage."
 ACTION=${1:-install}
 case "$ACTION" in
-    install|remove|delete) ;;
+    install|local|remove|delete) ;;
     -h|--help|help) usage; exit 0 ;;
     *) die "Unknown argument: $ACTION. Use --help for usage." ;;
 esac
@@ -29,9 +30,11 @@ if [[ $(id -u) == 0 ]]; then
     die "Run ./build.sh as your regular user, without sudo. It uses sudo where needed."
 fi
 
-command -v sudo >/dev/null || die "sudo is required."
-command -v systemctl >/dev/null || die "systemd is required."
-[[ -d /run/systemd/system ]] || die "Boot this machine with systemd before managing the service."
+if [[ $ACTION != local ]]; then
+    command -v sudo >/dev/null || die "sudo is required."
+    command -v systemctl >/dev/null || die "systemd is required."
+    [[ -d /run/systemd/system ]] || die "Boot this machine with systemd before managing the service."
+fi
 
 if [[ $ACTION == delete ]]; then
     [[ ${HOME:-} == /* && -d $HOME && -w $HOME ]] || die "HOME must be an existing, writable absolute directory."
@@ -68,15 +71,17 @@ cd -- "$SCRIPT_DIR"
 
 [[ -f Makefile && -f frontend/index.html && -f frontend/template.html ]] || die "Project sources or frontend files are missing."
 
-echo ">>> Upgrading packages and installing dependencies..."
-if command -v pacman >/dev/null; then
-    sudo pacman -Syu --needed base-devel sqlite curl
-elif command -v apt-get >/dev/null; then
-    sudo apt-get update
-    sudo apt-get upgrade -y
-    sudo apt-get install -y build-essential libsqlite3-dev sqlite3 curl
-else
-    die "Supported package managers are pacman (Arch) and apt-get (Debian/Ubuntu)."
+if [[ $ACTION != local ]]; then
+    echo ">>> Upgrading packages and installing dependencies..."
+    if command -v pacman >/dev/null; then
+        sudo pacman -Syu --needed base-devel sqlite curl
+    elif command -v apt-get >/dev/null; then
+        sudo apt-get update
+        sudo apt-get upgrade -y
+        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 curl
+    else
+        die "Supported package managers are pacman (Arch) and apt-get (Debian/Ubuntu)."
+    fi
 fi
 
 echo ">>> Building with Makefile..."
@@ -84,14 +89,16 @@ make clean TARGET="$BINARY_NAME"
 make TARGET="$BINARY_NAME"
 [[ -x ./$BINARY_NAME ]] || die "Make did not produce an executable ${BINARY_NAME}."
 
-TEMP_UNIT=$(mktemp --suffix=.service)
+TEMP_UNIT=""
 TEMP_DB=""
 cleanup() {
-    rm -f -- "$TEMP_UNIT"
+    if [[ -n $TEMP_UNIT ]]; then rm -f -- "$TEMP_UNIT"; fi
     if [[ -n $TEMP_DB ]]; then rm -f -- "$TEMP_DB"; fi
 }
 trap cleanup EXIT
 
+if [[ $ACTION != local ]]; then
+TEMP_UNIT=$(mktemp --suffix=.service)
 #That shit is now some fucking bash wizardry
 UNIT_HOME=${HOME//\\/\\\\}
 UNIT_HOME=${UNIT_HOME//\"/\\\"}
@@ -123,6 +130,8 @@ if [[ $LOAD_STATE != not-found ]]; then
     sudo systemctl stop "${SERVICE_NAME}.service"
 fi
 
+fi
+
 echo ">>> Installing runtime files in ${SERVER_PATH}..."
 mkdir -p -- "$SERVER_PATH/db" "$SERVER_PATH/frontend"
 cp -R -- frontend/. "$SERVER_PATH/frontend/"
@@ -143,6 +152,13 @@ elif [[ -f src/db/todo.db ]]; then
     TEMP_DB=""
 else
     echo ">>> No source database found; the server will create a fresh todo.db."
+fi
+
+if [[ $ACTION == local ]]; then
+    echo "Local build ready: ${SCRIPT_DIR}/${BINARY_NAME}"
+    echo "Runtime files: ${SERVER_PATH}"
+    echo "Run it with: ./${BINARY_NAME}"
+    exit 0
 fi
 
 echo ">>> Installing the executable and systemd unit..."

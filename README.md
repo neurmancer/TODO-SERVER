@@ -53,27 +53,28 @@ and now I need a separate repo to keep developing it
 
 #### Developer&Local Server Test
 
-- If you want to use the server as a test server and tweak it according to your taste I highly **recommend** you to use the given Makefile
-- But local compiling requries changes in the source code itself because the current status of the soruce is build.sh competible and seeks
-the designed .server subfolder in $HOME instead of the local files you can put the folders there manually if you don't want the daemoization
-with : 
-```bash
-
-cd ~  && mkdir .server
-
-cp frontend  ~/.server && cp db  ~/.server # assuming you're in the TODO-SERVER folder
-
-```
-
-or moidfy source code itself to use cwd instead of path_to_server() for local testing (get_cwd is also a utility function in the utils.h)
+Build locally and prepare the runtime files without sudo or systemd:
 
 ```bash
-
-make    #compile the shit
-make clean  #clean the mess
-make run    # I mean that is pointless since you can just do ./server but I've added it already
-
+./build.sh local
+./server
 ```
+
+This compiles `./server`, copies the frontend into `$HOME/.server/frontend`, and
+migrates `src/db/todo.db` into `$HOME/.server/db` if no installed database exists.
+An existing database is preserved. If there is no source database, the server
+creates one on its first run. Build dependencies must already be installed
+(`make`, a C compiler, SQLite development files, and `sqlite3` for database migration).
+
+or you can just manually move the frontend and db folders to $HOME/.server/
+and use:
+```bash
+make #to build
+make run # still unnecessary but to run (simply ./server)
+make clean #to clean shit
+```
+manually
+
 
 
 #### Full Build 

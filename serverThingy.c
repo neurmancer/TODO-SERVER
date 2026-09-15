@@ -13,6 +13,8 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
+#include <ifaddrs.h>
+#include <net/if.h>
 
 #ifndef PORT
 #define PORT 8080
@@ -28,11 +30,18 @@
 
 */
 
+void sigHandler(int sigNum);
+
+volatile sig_atomic_t flag = 1; 
 
 int main(void)
 {
+    setvbuf(stdout, NULL, _IONBF, 0);
+
     int server_sock = -1;
     int client_sock = -1;
+    int exit_status = EXIT_FAILURE;
+    struct ifaddrs *interfaces = NULL;
     sqlite3 *db = set_db();
 
     if (!db) { return(EXIT_FAILURE); }
@@ -40,13 +49,19 @@ int main(void)
     struct sockaddr_in server_addr = {0};
     struct sockaddr_in client_addr = {0};
 
-    int opt = 1;
+    struct sigaction sa = {0};
 
-    // A disconnected browser must not terminate the server during send().
-    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
-        perror("signal failed");
+    sa.sa_handler = sigHandler;
+    sigemptyset(&sa.sa_mask);
+    /* Let blocking socket calls return EINTR so shutdown can finish. */
+    sa.sa_flags = 0;
+    if (sigaction(SIGINT, &sa, NULL) == -1 || sigaction(SIGTERM, &sa, NULL) == -1)
+    {
+        perror("Signal Fuck Up...");
         goto rome;
     }
+
+    int opt = 1;
 
     if (route("GET",  "/",        send_homepage) < 0 ||
         route("GET",  "/*.css",   send_css) < 0 ||
@@ -72,7 +87,7 @@ int main(void)
         goto rome;
     }
 
-    server_addr.sin_family = AF_INET;
+    server_addr.sin_family = AF_INET; // Internet As Fuck 
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(PORT);
 
@@ -87,8 +102,31 @@ int main(void)
     }
 
     printf("Server is running on http://localhost:%d\n", PORT);
+    if (getifaddrs(&interfaces) == -1) {
+        perror("getifaddrs failed");
+        goto rome;
+    }
 
-    while (1) {
+    for (struct ifaddrs *device = interfaces; device != NULL; device = device->ifa_next) {
+        if (device->ifa_addr == NULL || device->ifa_addr->sa_family != AF_INET ||
+            !(device->ifa_flags & IFF_UP) || (device->ifa_flags & IFF_LOOPBACK)) {
+            continue;
+        }
+
+        struct sockaddr_in *address = (struct sockaddr_in *)device->ifa_addr;
+        char ip[INET_ADDRSTRLEN];
+        if (inet_ntop(AF_INET, &address->sin_addr, ip, sizeof(ip)) == NULL) {
+            perror("inet_ntop failed");
+            goto rome;
+        }
+
+        printf("Local network (%s): http://%s:%d\n", device->ifa_name, ip, PORT);
+    }
+    freeifaddrs(interfaces);
+    interfaces = NULL;
+
+    while (flag) {
+        
         socklen_t client_len = sizeof(client_addr);
         client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &client_len);
         if (client_sock == -1) {
@@ -110,6 +148,7 @@ int main(void)
 
         char buf[HTTP_REQUEST_CAPACITY];
         int status = read_http_request(client_sock, buf, sizeof(buf));
+        if (!flag) { break; }
         if (status == 200) {
             printf("Request: %.*s\n", (int)strcspn(buf, "\r\n"), buf);
             handle_request(client_sock, db, buf);
@@ -119,13 +158,27 @@ int main(void)
             send_request_error(client_sock, status);
         }
 
+        printf("Server's live\n");
+
+
         close(client_sock);
         client_sock = -1;
     }
 
+    exit_status = EXIT_SUCCESS;
+
 rome:
+    if (interfaces != NULL) freeifaddrs(interfaces);
     if (client_sock != -1) close(client_sock);
     if (server_sock != -1) close(server_sock);
     sqlite3_close(db);
-    return(EXIT_FAILURE);
+    return(exit_status);
+}
+
+
+void sigHandler(int sigNum)
+{
+    if (sigNum == SIGTERM || sigNum == SIGINT) {
+        flag = 0;
+    }
 }

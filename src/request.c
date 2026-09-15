@@ -69,7 +69,8 @@ int read_http_request(int client_sock, char *buffer, size_t capacity)
 
     for (;;) {
         ssize_t count = recv(client_sock, buffer + received, target_size - received, 0);
-        if (count < 0 && errno == EINTR){ continue; }
+        /* Abandon an interrupted request so the server can handle shutdown. */
+        if (count < 0 && errno == EINTR){ return(0); }
         
         if (count < 0){ return((errno == EAGAIN || errno == EWOULDBLOCK) ? 408 : 400); }
         
