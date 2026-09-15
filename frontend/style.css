@@ -398,10 +398,16 @@ input:focus-visible, textarea:focus-visible {
 }
 
 /* ====== SHITTY JUKEBOX ==== */
-.music-btn {
+.music-controls {
     position: fixed;
     bottom: 28px;
     right: 28px;
+    display: flex;
+    gap: 12px;
+    z-index: 9999;
+}
+
+.music-btn {
     width: 64px;
     height: 64px;
     border: 2px solid #39ff14;
@@ -446,9 +452,9 @@ input:focus-visible, textarea:focus-visible {
 .music-btn:disabled { cursor: wait; opacity: 0.65; }
 .music-status {
     position: fixed;
-    right: 108px;
-    bottom: 28px;
-    max-width: min(320px, calc(100vw - 136px));
+    right: 28px;
+    bottom: 108px;
+    max-width: min(320px, calc(100vw - 56px));
     margin: 0;
     padding: 8px 12px;
     border-radius: 6px;

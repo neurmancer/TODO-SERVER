@@ -5,10 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cyberspace</title>
     <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism-tomorrow.min.css" integrity="sha384-wFjoQjtV1y5jVHbt0p35Ui8aV8GVpEZkyF99OXWqP/eNJDU93D3Ugxkoyh6Y2I4A" crossorigin="anonymous">
     <link rel="stylesheet" href="/style.css">
+    <!-- Some web nerd sorcery that I stole -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js" integrity="sha384-xAgN7OCsK5s0d3G18tqRYrxy8hWsPA14E26TMh7Mi9ZM09vaz4EA0DBTl+80F5yC" crossorigin="anonymous" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-c.min.js" integrity="sha384-gaD4ncierlmWk42Z3BmTp37/z+Dqt8V4Wf74UjTvFeo+M+SgnEI6Ysd98pWhksQv" crossorigin="anonymous" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-cpp.min.js" integrity="sha384-NiOrAquf32LSG3Vuig99LKS03EZPUuM8a51NOp+XXsqx08hUVo3wbNWALY7K/2J8" crossorigin="anonymous" defer></script>
     <script src="/jukebox.js" defer></script>
+    <script src="/editor.js" defer></script>
+    <script src="/navigation.js" defer></script>
 </head>
 <body>
+    <p id="navigation-status" role="status" hidden></p>
+    <div id="page-content">
     <header class="page-header">
         <p class="eyebrow">// a little order in the chaos</p>
         <h1 class="glow">Cyberspace</h1>
@@ -33,8 +42,12 @@
     <footer class="footer"><p>My beloved cc sending her regards from the back-end</p>
         <span class="she-loves-purple"><p >Mwah   OwO</p></span>
     </footer>
+    </div>
     <div class="music-player" id="music-player" hidden></div>
     <p class="music-status" id="music-status" role="status"></p>
-    <button type="button" class="music-btn" id="musicBtn" title="Play music" aria-label="Play music" aria-pressed="false">▶</button>
+    <div class="music-controls" role="group" aria-label="Music controls">
+        <button type="button" class="music-btn" id="musicBtn" title="Play music" aria-label="Play music" aria-pressed="false">▶</button>
+        <button type="button" class="music-btn" id="nextSongBtn" title="Next song" aria-label="Next song">⏭</button>
+    </div>
 </body>
 </html>

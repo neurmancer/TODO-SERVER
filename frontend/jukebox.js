@@ -1,12 +1,31 @@
 (() => {
     const button = document.getElementById('musicBtn');
+    const nextButton = document.getElementById('nextSongBtn');
     const panel = document.getElementById('music-player');
     const status = document.getElementById('music-status');
-    if (!button || !panel || !status) return;
+    if (!button || !nextButton || !panel || !status) return;
 
     let player = null;
     let apiPromise = null;
     let readyTimer;
+    let playbackTimer;
+    let currentVideoId = null;
+
+    const youtubeErrors = {
+        2: 'YouTube rejected the video ID or player parameters.',
+        5: 'The browser could not play this video in the YouTube player.',
+        100: 'This video was removed, is private, or could not be found.',
+        101: 'The video owner does not allow playback on other websites.',
+        150: 'The video owner does not allow playback on other websites.',
+        153: 'YouTube could not identify this website. Check browser referrer settings.',
+    };
+
+    function watchPlayback() {
+        clearTimeout(playbackTimer);
+        playbackTimer = setTimeout(() => {
+            fail('Playback stalled for 30 seconds. Try opening the song on YouTube or choose next.');
+        }, 30000);
+    }
 
     function showPlaying(playing) {
         button.textContent = playing ? '❚❚' : '▶';
@@ -16,14 +35,25 @@
         button.title = playing ? 'Pause music' : 'Play music';
     }
 
-    function fail() {
+    function fail(message = 'Music could not load. Press play to try again.', code = null) {
         clearTimeout(readyTimer);
-        if (player) player.destroy();
+        clearTimeout(playbackTimer);
+        const failedPlayer = player;
         player = null;
+        if (failedPlayer) failedPlayer.destroy();
         panel.hidden = true;
-        button.disabled = false;
+        button.disabled = nextButton.disabled = false;
         showPlaying(false);
-        status.textContent = 'Music could not load. Press play to try again.';
+        status.textContent = message;
+        if (currentVideoId) {
+            const link = document.createElement('a');
+            link.href = `https://www.youtube.com/watch?v=${currentVideoId}`;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = `Open song on YouTube (${currentVideoId})`;
+            status.append(' ', link);
+        }
+        console.warn('Jukebox playback failed', { videoId: currentVideoId, code, message });
     }
 
     function loadYouTube() {
@@ -70,21 +100,26 @@
     }
 
     async function startSong() {
-        button.disabled = true;
+        if (button.disabled) return;
+        button.disabled = nextButton.disabled = true;
+        clearTimeout(playbackTimer);
+        currentVideoId = null;
         button.textContent = '…';
         status.textContent = 'Loading music…';
         try {
             const [videoId] = await Promise.all([randomVideo(), loadYouTube()]);
+            currentVideoId = videoId;
             if (player) {
+                watchPlayback();
                 player.loadVideoById(videoId);
-                button.disabled = false;
+                button.disabled = nextButton.disabled = false;
                 status.textContent = '';
                 return;
             }
             const mount = document.createElement('div');
             panel.replaceChildren(mount);
  
-            readyTimer = setTimeout(fail, 15000);
+            readyTimer = setTimeout(() => fail('The YouTube player did not become ready. Try again.'), 15000);
             player = new YT.Player(mount, {
                 width: '0', height: '0', videoId,
                 playerVars: { playsinline: 1, origin: window.location.origin },
@@ -92,30 +127,43 @@
                     onReady(event) {
                         if (event.target !== player) return;
                         clearTimeout(readyTimer);
-                        button.disabled = false;
+                        button.disabled = nextButton.disabled = false;
                         status.textContent = '';
                         showPlaying(false);
+                        watchPlayback();
                         event.target.playVideo();
                     },
                     onStateChange(event) {
                         if (event.target !== player) return;
                         showPlaying(event.data === YT.PlayerState.PLAYING);
+                        if (event.data === YT.PlayerState.BUFFERING) {
+                            watchPlayback();
+                        } else if ([YT.PlayerState.PLAYING, YT.PlayerState.PAUSED,
+                            YT.PlayerState.ENDED].includes(event.data)) {
+                            clearTimeout(playbackTimer);
+                        }
                         if (event.data === YT.PlayerState.ENDED) startSong();
                     },
                     onAutoplayBlocked(event) {
                         if (event.target !== player) return;
+                        clearTimeout(playbackTimer);
                         showPlaying(false);
                         status.textContent = 'Press play to start music.';
                     },
                     onError(event) {
-                        if (event.target === player) fail();
+                        if (event.target !== player) return;
+                        const reason = youtubeErrors[event.data] || 'YouTube reported an unknown playback error.';
+                        fail(`${reason} (YouTube error ${event.data}) Choose next to try another song.`, event.data);
                     },
                 },
             });
-        } catch {
-            fail();
+        } catch (error) {
+            console.warn('Jukebox loading error', error);
+            fail('Could not fetch a song or load YouTube. Check your connection and try again.');
         }
     }
+
+    nextButton.addEventListener('click', startSong);
 
     button.addEventListener('click', () => {
         if (button.disabled) return;
@@ -125,6 +173,7 @@
         } else if (player.getPlayerState() === YT.PlayerState.PLAYING) {
             player.pauseVideo();
         } else {
+            watchPlayback();
             player.playVideo();
         }
     });

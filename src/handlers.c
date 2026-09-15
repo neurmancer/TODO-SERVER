@@ -284,7 +284,7 @@ static const char *const jukebox_songs[] = {
     "O5Kw41JAfG4", //Still loving you...
     "Ll4NJs3NBIU", //Bad romance (halestorm version)
     "GrD3dDUKxYY", // I hate everything about you
-    "yVSmiDJB", //Suicide Solution
+    "yVSmiDJB-PI", //Suicide Solution
     NULL, /* you forget that you fucked. */
 };
 
