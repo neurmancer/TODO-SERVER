@@ -44,6 +44,8 @@ and now I need a separate repo to keep developing it
 -   Markdown style rendering support (Outsourced via MD4C)
 -   A randomized song selection 'cuz why not
 -   A cool front-end (really tho it looks dope!)
+-   HTTPS Certificate generation
+-   the 8080 accsessibilty stuff (PORT forwarding? IDK the name)
 
 --- 
 
@@ -78,7 +80,6 @@ make clean #to clean shit
 manually
 
 
-
 #### HTTPS
 
 Open **https://localhost:8080** after starting the server. It now accepts HTTPS
@@ -111,8 +112,7 @@ Keep the TLS directory mode `700` and private key mode `600`. Service removal an
 data deletion preserve the TLS directory so an uninstall does not silently change
 this site's identity.
 
-Certificate generation uses OpenSSL's documented
-[`req -x509` and `-addext` options](https://docs.openssl.org/3.4/man1/openssl-req/).
+C
 
 #### Full Build 
 
@@ -132,19 +132,7 @@ If you haven't checked the code yourself or you don't trust the author (me (the 
 -   cleans the residue of the build before leaving
 -   if firewalld is installed and active, opens TCP 8080 in the `public` zone
     in both runtime and permanent configuration, then verifies both rules
-
-The firewall step runs only during a full install, after HTTPS startup checks pass.
-It skips firewall setup with a message if firewalld is absent or inactive.
-`./build.sh local` does not change firewall rules. Check the interface's zone with
-`sudo firewall-cmd --get-active-zones`; a rule in `public` applies only to traffic
-assigned to that zone. Rules are preserved when removing the server, since another
-application may also use port 8080.
-
-The runtime rule alone is temporary; the permanent rule preserves access after a
-reboot or firewall reload ([firewalld documentation](https://firewalld.org/documentation/howto/open-a-port-or-service.html)).
-For access over the Internet behind a router, you also need a reachable public IP
-and TCP port forwarding to this machine. The generated certificate covers local
-addresses; using a public hostname requires a certificate covering that hostname.
+-   Will set the port up 8080 for local traffic (local build skips this) 
 
 To use:
 
@@ -181,3 +169,6 @@ This project is licensec under GPL-3.0 thing if you're a badge or law nerd the p
 
 all the third party files placed under vendor subfolder with their respective license so... don't make me say those as if I am in a tux 
 you got the idea basically don't steal shit, respect to the MD4C and go feral about the rest luv u <3 OwO
+
+ertificate generation uses OpenSSL's documented
+[`req -x509` and `-addext` options](https://docs.openssl.org/3.4/man1/openssl-req/).
