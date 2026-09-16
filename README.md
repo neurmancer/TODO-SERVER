@@ -1,8 +1,12 @@
 # BASIC TODO-SERVER
 
+### A Shitty Enterprise™ Product
+
 > A basic todo-server to keep track of your idaes (local network)
 
 _Yet again...I lowkey gotta change the title..._ 
+
+
 
 
 > This project started as a proof of concept then started to get **bigger**
@@ -240,7 +244,7 @@ Already deployed with the old browser popup? Run `./build.sh update`, then rerun
 replaces the old gateway login with the app's login page.
 
 Sessions last up to eight hours. **Sign out** invalidates the current session;
-restarting the server clears all sessions. Passwords are stored as salted
+restarting the server clears all sessions. Passwords are stored as salted(well seasoned)
 PBKDF2-SHA256 hashes (600,000 iterations), and cookies are Secure, HttpOnly, and
 SameSite=Strict. Five failed attempts pause login attempts for a minute across
 this single-user server. Changing the password uses the same setup command;
