@@ -1,6 +1,8 @@
 #ifndef REQUEST_H
 #define REQUEST_H
 
+#include "tls.h"
+
 #include <stddef.h>
 
 #define HTTP_MAX_HEADER_SIZE 8192
@@ -11,6 +13,6 @@
 // Read one complete request, including the Content-Length bytes of its body.
 // Returns 200 on success, 0 for an empty connection, or an HTTP error status.
 // The caller sets a socket receive timeout and owns the buffer and socket.
-int read_http_request(int client_sock, char *buffer, size_t capacity);
+int read_http_request(TLSClient *client, char *buffer, size_t capacity);
 
 #endif

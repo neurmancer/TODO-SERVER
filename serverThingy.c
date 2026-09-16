@@ -40,7 +40,12 @@ int main(void)
 
     int server_sock = -1;
     int client_sock = -1;
+
+    TLSClient client = {0};
+    SSL_CTX *context = NULL;
+
     int exit_status = EXIT_FAILURE;
+
     struct ifaddrs *interfaces = NULL;
     sqlite3 *db = set_db();
 
@@ -60,6 +65,15 @@ int main(void)
         perror("Signal Fuck Up...");
         goto rome;
     }
+
+    struct sigaction ignore_pipe = {.sa_handler = SIG_IGN};
+    sigemptyset(&ignore_pipe.sa_mask);
+    if (sigaction(SIGPIPE, &ignore_pipe, NULL) == -1) {
+        perror("SIGPIPE setup failed");
+        goto rome;
+    }
+    context = tls_context();
+    if (!context) goto rome;
 
     int opt = 1;
 
@@ -101,7 +115,7 @@ int main(void)
         goto rome;
     }
 
-    printf("Server is running on http://localhost:%d\n", PORT);
+    printf("Server is running on https://localhost:%d\n", PORT);
     if (getifaddrs(&interfaces) == -1) {
         perror("getifaddrs failed");
         goto rome;
@@ -120,7 +134,7 @@ int main(void)
             goto rome;
         }
 
-        printf("Local network (%s): http://%s:%d\n", device->ifa_name, ip, PORT);
+        printf("Local network (%s): https://%s:%d\n", device->ifa_name, ip, PORT);
     }
     freeifaddrs(interfaces);
     interfaces = NULL;
@@ -146,21 +160,29 @@ int main(void)
             continue;
         }
 
+        if (tls_accept(&client, context, client_sock) < 0) {
+            tls_close(&client);
+            close(client_sock);
+            client_sock = -1;
+            continue;
+        }
+
         char buf[HTTP_REQUEST_CAPACITY];
-        int status = read_http_request(client_sock, buf, sizeof(buf));
+        int status = read_http_request(&client, buf, sizeof(buf));
         if (!flag) { break; }
         if (status == 200) {
             printf("Request: %.*s\n", (int)strcspn(buf, "\r\n"), buf);
-            handle_request(client_sock, db, buf);
+            handle_request(&client, db, buf);
         } 
         
         else if (status != 0) {
-            send_request_error(client_sock, status);
+            send_request_error(&client, status);
         }
 
         printf("Server's live\n");
 
 
+        tls_close(&client);
         close(client_sock);
         client_sock = -1;
     }
@@ -168,6 +190,8 @@ int main(void)
     exit_status = EXIT_SUCCESS;
 
 rome:
+    tls_close(&client);
+    SSL_CTX_free(context);
     if (interfaces != NULL) freeifaddrs(interfaces);
     if (client_sock != -1) close(client_sock);
     if (server_sock != -1) close(server_sock);

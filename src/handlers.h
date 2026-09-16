@@ -1,5 +1,7 @@
 #ifndef HANDLERS_H
 #define HANDLERS_H
+#include "tls.h"
+
 #include <sqlite3.h>
 
 typedef struct {
@@ -7,18 +9,18 @@ typedef struct {
     const char *meaning;
 } HttpStatus;
 
-void send_request_error(int client_sock, int code);
+void send_request_error(TLSClient *client, int code);
 
-void send_404(int client_socket, sqlite3 *db, const char *path, const char *body);
-void send_homepage(int client_sock, sqlite3 *db, const char *path, const char *body);
-void send_css(int client_sock, sqlite3 *db, const char *path, const char *body);
-void send_js(int client_sock, sqlite3 *db, const char *path, const char *body);
-void send_favicon(int client_sock, sqlite3 *db, const char *path, const char *body);
-void send_jukebox_song(int client_sock, sqlite3 *db, const char *path, const char *body);
-void send_todo_page(int client_sock, sqlite3 *db, const char *path, const char *body);
-void handle_post(int client_sock, sqlite3 *db, const char *path, const char *body);
-void handle_update(int client_sock, sqlite3 *db, const char *path, const char *body);
-void handle_complete(int client_sock, sqlite3 *db, const char *path, const char *body);
-void handle_delete(int client_sock, sqlite3 *db, const char *path, const char *body);
+void send_404(TLSClient *client, sqlite3 *db, const char *path, const char *body);
+void send_homepage(TLSClient *client, sqlite3 *db, const char *path, const char *body);
+void send_css(TLSClient *client, sqlite3 *db, const char *path, const char *body);
+void send_js(TLSClient *client, sqlite3 *db, const char *path, const char *body);
+void send_favicon(TLSClient *client, sqlite3 *db, const char *path, const char *body);
+void send_jukebox_song(TLSClient *client, sqlite3 *db, const char *path, const char *body);
+void send_todo_page(TLSClient *client, sqlite3 *db, const char *path, const char *body);
+void handle_post(TLSClient *client, sqlite3 *db, const char *path, const char *body);
+void handle_update(TLSClient *client, sqlite3 *db, const char *path, const char *body);
+void handle_complete(TLSClient *client, sqlite3 *db, const char *path, const char *body);
+void handle_delete(TLSClient *client, sqlite3 *db, const char *path, const char *body);
 
 #endif

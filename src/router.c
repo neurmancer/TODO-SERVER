@@ -45,12 +45,12 @@ int route(const char *method, const char *path, Handler handler) {
     return(0);
 }
 
-void handle_request(int client_sock, sqlite3 *db, const char *raw) {
+void handle_request(TLSClient *client, sqlite3 *db, const char *raw) {
     char method[16] = {0};
     char path[512]  = {0};
 
     if (!raw || sscanf(raw, "%15s %511s", method, path) != 2) {
-        send_404(client_sock, db, path, "");
+        send_404(client, db, path, "");
         return;
     }
 
@@ -76,16 +76,16 @@ void handle_request(int client_sock, sqlite3 *db, const char *raw) {
             if (path_len >= prefix_len + suffix_len &&
                 strncmp(path, r->path, prefix_len) == 0 &&
                 strcmp(path + path_len - suffix_len, wildcard + 1) == 0) {
-                r->handler(client_sock, db, path, body);
+                r->handler(client, db, path, body);
                 return;
             }
         } else {
             if (strcmp(path, r->path) == 0) {
-                r->handler(client_sock, db, path, body);
+                r->handler(client, db, path, body);
                 return;
             }
         }
     }
 
-    send_404(client_sock, db, path, body);
+    send_404(client, db, path, body);
 }

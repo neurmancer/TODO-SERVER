@@ -64,11 +64,13 @@ This compiles `./server`, copies the frontend into `$HOME/.server/frontend`, and
 migrates `src/db/todo.db` into `$HOME/.server/db` if no installed database exists.
 An existing database is preserved. If there is no source database, the server
 creates one on its first run. Build dependencies must already be installed
-(`make`, a C compiler, SQLite development files, and `sqlite3` for database migration).
+(`make`, a C compiler, SQLite and OpenSSL development files, the `openssl` CLI,
+and `sqlite3` for database migration).
 
 or you can just manually move the frontend and db folders to $HOME/.server/
 and use:
 ```bash
+./generate-cert.sh # generate the local HTTPS certificate once
 make #to build
 make run # still unnecessary but to run (simply ./server)
 make clean #to clean shit
@@ -76,6 +78,41 @@ make clean #to clean shit
 manually
 
 
+
+#### HTTPS
+
+Open **https://localhost:8080** after starting the server. It now accepts HTTPS
+only on port 8080, using OpenSSL with TLS 1.2 or newer. LAN URLs are printed on startup.
+
+Both build modes generate a self-signed RSA certificate (valid for 365 days) in
+`$HOME/.server/tls/cert.pem` with a private key in `$HOME/.server/tls/key.pem`.
+Existing certificates are preserved. The certificate covers `localhost`,
+`127.0.0.1`, and active IPv4 addresses discovered with `ip` at generation time.
+For additional names or addresses, generate it before running the build:
+
+```bash
+./generate-cert.sh 'DNS:todo.local,IP:192.168.1.20'
+```
+
+Browsers will warn because this certificate is self-signed. Trust `cert.pem` on
+client devices through their browser/OS certificate settings; never share
+`key.pem`. To check HTTPS without disabling certificate verification:
+
+```bash
+curl --cacert "$HOME/.server/tls/cert.pem" https://localhost:8080/
+openssl x509 -in "$HOME/.server/tls/cert.pem" -noout -fingerprint -sha256
+```
+
+If your LAN address changes or the certificate expires, move the old certificate
+and key aside, rerun `./generate-cert.sh`, and restart the server. Clients will need
+to trust the new certificate. You can also place a CA-issued PEM certificate chain
+and matching unencrypted private key at those same paths, then restart.
+Keep the TLS directory mode `700` and private key mode `600`. Service removal and
+data deletion preserve the TLS directory so an uninstall does not silently change
+this site's identity.
+
+Certificate generation uses OpenSSL's documented
+[`req -x509` and `-addext` options](https://docs.openssl.org/3.4/man1/openssl-req/).
 
 #### Full Build 
 
@@ -93,6 +130,21 @@ If you haven't checked the code yourself or you don't trust the author (me (the 
 -   creates server.service and moves it into /etc/systemd/system/
 -   moves the server into /usr/local/bin/
 -   cleans the residue of the build before leaving
+-   if firewalld is installed and active, opens TCP 8080 in the `public` zone
+    in both runtime and permanent configuration, then verifies both rules
+
+The firewall step runs only during a full install, after HTTPS startup checks pass.
+It skips firewall setup with a message if firewalld is absent or inactive.
+`./build.sh local` does not change firewall rules. Check the interface's zone with
+`sudo firewall-cmd --get-active-zones`; a rule in `public` applies only to traffic
+assigned to that zone. Rules are preserved when removing the server, since another
+application may also use port 8080.
+
+The runtime rule alone is temporary; the permanent rule preserves access after a
+reboot or firewall reload ([firewalld documentation](https://firewalld.org/documentation/howto/open-a-port-or-service.html)).
+For access over the Internet behind a router, you also need a reachable public IP
+and TCP port forwarding to this machine. The generated certificate covers local
+addresses; using a public hostname requires a certificate covering that hostname.
 
 To use:
 
@@ -116,7 +168,7 @@ chmod +x build.sh #if not an executable already
 
 - getting the device IP on runtime to make the server accessible to LAN instead of caging it only to localhost (Done but need tweaks)
 
-- An HTTPS feature (postponed)
+- HTTPS with OpenSSL and local certificate generation (Done)
 
 - And changed colors for highlighted c format markdown (left for the end user I am fine with the current colors)
 

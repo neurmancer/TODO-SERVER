@@ -11,6 +11,7 @@ die() { echo "ERROR: $*" >&2; exit 1; }
 usage() {
     echo "Usage: $0 [install|local|remove|delete|--help]"
     echo "  install  Upgrade packages, build, install, and start the server (default)."
+    echo '           Open TCP 8080 in the public zone when firewalld is active.'
     echo '  local    Build here and copy frontend/database to $HOME/.server; skip service setup.'
     echo '  remove   Uninstall the service and executable; preserve $HOME/.server.'
     echo '  delete   Uninstall and permanently delete $HOME/.server/db and frontend.'
@@ -74,15 +75,18 @@ cd -- "$SCRIPT_DIR"
 if [[ $ACTION != local ]]; then
     echo ">>> Upgrading packages and installing dependencies..."
     if command -v pacman >/dev/null; then
-        sudo pacman -Syu --needed base-devel sqlite curl
+        sudo pacman -Syu --needed base-devel sqlite curl openssl
     elif command -v apt-get >/dev/null; then
         sudo apt-get update
         sudo apt-get upgrade -y
-        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 curl
+        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 curl libssl-dev openssl
     else
         die "Supported package managers are pacman (Arch) and apt-get (Debian/Ubuntu)."
     fi
 fi
+
+echo ">>> Preparing HTTPS certificate..."
+bash ./generate-cert.sh
 
 echo ">>> Building with Makefile..."
 make clean TARGET="$BINARY_NAME"
@@ -157,6 +161,7 @@ fi
 if [[ $ACTION == local ]]; then
     echo "Local build ready: ${SCRIPT_DIR}/${BINARY_NAME}"
     echo "Runtime files: ${SERVER_PATH}"
+    echo "Site: https://localhost:8080 (self-signed certificate)"
     echo "Run it with: ./${BINARY_NAME}"
     exit 0
 fi
@@ -168,20 +173,35 @@ sudo systemctl daemon-reload
 sudo systemctl enable "${SERVICE_NAME}.service"
 sudo systemctl restart "${SERVICE_NAME}.service"
 
-echo ">>> Checking startup and HTTP responses..."
-if ! curl --fail --silent --show-error --retry 5 --retry-connrefused \
-    --retry-delay 1 --max-time 5 --output /dev/null http://127.0.0.1:8080/ ||
-    ! curl --fail --silent --show-error --max-time 5 --output /dev/null http://127.0.0.1:8080/style.css ||
+echo ">>> Checking startup and HTTPS responses..."
+if ! curl --cacert "$SERVER_PATH/tls/cert.pem" --fail --silent --show-error --retry 5 --retry-connrefused \
+    --retry-delay 1 --max-time 5 --output /dev/null https://127.0.0.1:8080/ ||
+    ! curl --cacert "$SERVER_PATH/tls/cert.pem" --fail --silent --show-error --max-time 5 --output /dev/null https://127.0.0.1:8080/style.css ||
     ! sudo systemctl is-active --quiet "${SERVICE_NAME}.service"; then
     sudo systemctl status --no-pager "${SERVICE_NAME}.service" || true
     sudo journalctl -u "${SERVICE_NAME}.service" -n 30 --no-pager || true
     die "The server did not pass its startup checks. See the diagnostics above."
 fi
 
+echo ">>> Configuring HTTPS access through firewalld..."
+if command -v firewall-cmd >/dev/null && systemctl is-active --quiet firewalld.service; then
+    sudo firewall-cmd --zone=public --add-port=8080/tcp
+    sudo firewall-cmd --permanent --zone=public --add-port=8080/tcp
+    sudo firewall-cmd --zone=public --query-port=8080/tcp ||
+        die "TCP 8080 is not open in firewalld's runtime public zone."
+    sudo firewall-cmd --permanent --zone=public --query-port=8080/tcp ||
+        die "TCP 8080 is not open in firewalld's permanent public zone."
+    echo "TCP 8080 is open in the public zone now and after reboot."
+    echo "Check that your network interface uses this zone: sudo firewall-cmd --get-active-zones"
+else
+    echo "Skipping firewall setup: firewalld is not installed or active."
+    echo "If another firewall is in use, allow inbound TCP 8080 there."
+fi
+
 make clean
 
 echo "=============================================="
-echo "Server running at:   http://localhost:8080" # Might change in the future tho
+echo "Server running at:   https://localhost:8080" # Might change in the future tho
 echo "Binary installed to: ${INSTALL_PATH}"
 echo "Runtime files:       ${SERVER_PATH}"
 echo "Service runs as:     ${RUN_USER}"

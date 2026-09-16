@@ -4,7 +4,6 @@
 #include <errno.h>
 #include <string.h>
 #include <strings.h>
-#include <sys/socket.h>
 
 static int header_is(const char *start, size_t length, const char *name)
 {
@@ -57,7 +56,7 @@ static int parse_body_length(char *buffer, size_t header_size, size_t *body_size
     return(200);
 }
 
-int read_http_request(int client_sock, char *buffer, size_t capacity)
+int read_http_request(TLSClient *client, char *buffer, size_t capacity)
 {
     if (!buffer || capacity < 2){ return(413); }
     size_t received = 0;
@@ -68,7 +67,7 @@ int read_http_request(int client_sock, char *buffer, size_t capacity)
     buffer[0] = '\0';
 
     for (;;) {
-        ssize_t count = recv(client_sock, buffer + received, target_size - received, 0);
+        ssize_t count = tls_read(client, buffer + received, target_size - received);
         /* Abandon an interrupted request so the server can handle shutdown. */
         if (count < 0 && errno == EINTR){ return(0); }
         

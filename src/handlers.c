@@ -8,8 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <sys/sendfile.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <stdint.h>
@@ -46,19 +44,12 @@ static const char *get_status_meaning(int code)
 }
 
 
-static int send_all(int client_sock, const char *data, size_t length)
+static int send_all(TLSClient *client, const char *data, size_t length)
 {
-    while (length > 0) {
-        ssize_t sent = send(client_sock, data, length, MSG_NOSIGNAL);
-        if (sent < 0 && errno == EINTR) continue;
-        if (sent <= 0) return(-1);
-        data += sent;
-        length -= (size_t)sent;
-    }
-    return(0);
+    return tls_write_all(client, data, length);
 }
 
-static int send_headers(int client_sock, int code, const char *content_type,
+static int send_headers(TLSClient *client, int code, const char *content_type,
                         size_t length, const char *location)
 {
     char header[512];
@@ -74,63 +65,58 @@ static int send_headers(int client_sock, int code, const char *content_type,
         location ? "\r\n" : "");
 
     if (header_len < 0 || (size_t)header_len >= sizeof(header)) return(-1);
-    return(send_all(client_sock, header, (size_t)header_len));
+    return(send_all(client, header, (size_t)header_len));
 }
 
-static void send_http_response(int client_sock, int code, const char *content_type, const char *body)
+static void send_http_response(TLSClient *client, int code, const char *content_type, const char *body)
 {
     size_t length = body ? strlen(body) : 0;
-    if (send_headers(client_sock, code, content_type, length, NULL) == 0 && length) {
-        send_all(client_sock, body, length);
+    if (send_headers(client, code, content_type, length, NULL) == 0 && length) {
+        send_all(client, body, length);
     }
 }
 
-static void send_redirect(int client_sock, const char *location)
+static void send_redirect(TLSClient *client, const char *location)
 {
-    send_headers(client_sock, 303, "text/plain; charset=utf-8", 0, location);
+    send_headers(client, 303, "text/plain; charset=utf-8", 0, location);
 }
 
-void send_request_error(int client_sock, int code)
+void send_request_error(TLSClient *client, int code)
 {
-    send_http_response(client_sock, code, "text/plain; charset=utf-8", get_status_meaning(code));
+    send_http_response(client, code, "text/plain; charset=utf-8", get_status_meaning(code));
 }
 
-static void send_file_response(int client_sock, int code, const char *content_type,
+static void send_file_response(TLSClient *client, int code, const char *content_type,
                                FILE *file, size_t length)
 {
-    if (send_headers(client_sock, code, content_type, length, NULL) < 0)
+    if (send_headers(client, code, content_type, length, NULL) < 0)
         return;
 
-    off_t offset = 0;
+    char buffer[16384];
     while (length > 0) {
-        // A transfer can be short; keep sending until the measured file is sent.
-        size_t count = length > 1024 * 1024 ? 1024 * 1024 : length;
-        ssize_t sent = sendfile(client_sock, fileno(file), &offset, count);
-        if (sent < 0 && errno == EINTR) continue;
-        if (sent <= 0) {
-            // Headers are already sent, so don't append a second HTTP response.
-            if (sent < 0) { perror("sendfile failed"); }
+        size_t count = length < sizeof(buffer) ? length : sizeof(buffer);
+        size_t read_count = fread(buffer, 1, count, file);
+        if (read_count == 0 || send_all(client, buffer, read_count) < 0)
             return;
-        }
-        length -= (size_t)sent;
+        length -= read_count;
     }
 }
 
-static void send_rendered_page(int client_sock, const char *filename,
+static void send_rendered_page(TLSClient *client, const char *filename,
                                TemplateVar *vars, size_t count)
 {
     char page_path[PATH_MAX];
     if (get_server_path(page_path, sizeof(page_path), filename) != OK) {
-        send_http_response(client_sock, 500, "text/plain", "Could not resolve page path");
+        send_http_response(client, 500, "text/plain", "Could not resolve page path");
         return;
     }
     size_t length = 0;
     FILE *page = render_template_file(page_path, vars, count, &length);
     if (!page) {
-        send_http_response(client_sock, 500, "text/plain", "Could not render page");
+        send_http_response(client, 500, "text/plain", "Could not render page");
         return;
     }
-    send_file_response(client_sock, 200, "text/html; charset=utf-8", page, length);
+    send_file_response(client, 200, "text/html; charset=utf-8", page, length);
     fclose(page);
 }
 
@@ -166,7 +152,7 @@ static char *escape_html(const char *text)
     return(escaped);
 }
 
-void send_404(int client_sock, sqlite3 *db, const char *path, const char *body)
+void send_404(TLSClient *client, sqlite3 *db, const char *path, const char *body)
 {
     (void)db; (void)path; (void)body;
     char page_path[PATH_MAX];
@@ -177,10 +163,10 @@ void send_404(int client_sock, sqlite3 *db, const char *path, const char *body)
         info.st_size < 0 || (uintmax_t)info.st_size > SIZE_MAX) {
         if (page) fclose(page);
         // Keep 404 usable until the custom file has been created.
-        send_http_response(client_sock, 404, "text/plain", "404 - Not Found");
+        send_http_response(client, 404, "text/plain", "404 - Not Found");
         return;
     }
-    send_file_response(client_sock, 404, "text/html; charset=utf-8", page, (size_t)info.st_size);
+    send_file_response(client, 404, "text/html; charset=utf-8", page, (size_t)info.st_size);
     fclose(page);
 }
 
@@ -223,40 +209,40 @@ static FILE *open_asset(const char *path, struct stat *info)
     return(file);
 }
 
-static void send_asset(int client_sock, sqlite3 *db, const char *path,
+static void send_asset(TLSClient *client, sqlite3 *db, const char *path,
                        const char *body, const char *extension, const char *content_type)
 {
     const char *suffix = path ? strrchr(path, '.') : NULL;
     struct stat info;
     FILE *file = suffix && strcmp(suffix, extension) == 0 ? open_asset(path, &info) : NULL;
     if (!file) {
-        send_404(client_sock, db, path, body);
+        send_404(client, db, path, body);
         return;
     }
-    send_file_response(client_sock, 200, content_type, file, (size_t)info.st_size);
+    send_file_response(client, 200, content_type, file, (size_t)info.st_size);
     fclose(file);
 }
 
-void send_css(int client_sock, sqlite3 *db, const char *path, const char *body)
+void send_css(TLSClient *client, sqlite3 *db, const char *path, const char *body)
 {
-    send_asset(client_sock, db, path, body, ".css", "text/css; charset=utf-8");
+    send_asset(client, db, path, body, ".css", "text/css; charset=utf-8");
 }
 
-void send_js(int client_sock, sqlite3 *db, const char *path, const char *body)
+void send_js(TLSClient *client, sqlite3 *db, const char *path, const char *body)
 {
-    send_asset(client_sock, db, path, body, ".js", "text/javascript; charset=utf-8");
+    send_asset(client, db, path, body, ".js", "text/javascript; charset=utf-8");
 }
 
-void send_favicon(int client_sock, sqlite3 *db, const char *path, const char *body)
+void send_favicon(TLSClient *client, sqlite3 *db, const char *path, const char *body)
 {
     if (path && strcmp(path, "/favicon.png") == 0) {
-        send_asset(client_sock, db, path, body, ".png", "image/png");
+        send_asset(client, db, path, body, ".png", "image/png");
     } else if (path && strcmp(path, "/favicon.svg") == 0) {
-        send_asset(client_sock, db, path, body, ".svg", "image/svg+xml");
+        send_asset(client, db, path, body, ".svg", "image/svg+xml");
     } else if (path && strcmp(path, "/favicon.ico") == 0) {
-        send_asset(client_sock, db, path, body, ".ico", "image/vnd.microsoft.icon");
+        send_asset(client, db, path, body, ".ico", "image/vnd.microsoft.icon");
     } else {
-        send_404(client_sock, db, path, body);
+        send_404(client, db, path, body);
     }
 }
 
@@ -269,17 +255,17 @@ static const char *const jukebox_songs[] = {
     NULL, /* you forget that you fucked. */
 };
 
-void send_jukebox_song(int client_sock, sqlite3 *db, const char *path, const char *body)
+void send_jukebox_song(TLSClient *client, sqlite3 *db, const char *path, const char *body)
 {
     (void)db; (void)path; (void)body;
     unsigned int random;
     sqlite3_randomness(sizeof(random), &random);
     size_t count = sizeof(jukebox_songs) / sizeof(jukebox_songs[0]) - 1;
     if (!count) {
-        send_http_response(client_sock, 404, "text/plain; charset=utf-8", "No songs configured");
+        send_http_response(client, 404, "text/plain; charset=utf-8", "No songs configured");
         return;
     }
-    send_http_response(client_sock, 200, "text/plain; charset=utf-8",
+    send_http_response(client, 200, "text/plain; charset=utf-8",
                        jukebox_songs[random % count]);
 }
 
@@ -314,12 +300,12 @@ static void append_todo_link(struct todo_data *todo, void *userdata)
     list->count++;
 }
 
-void send_homepage(int client_sock, sqlite3 *db, const char *path, const char *body)
+void send_homepage(TLSClient *client, sqlite3 *db, const char *path, const char *body)
 {
     (void)path; (void)body;
 
     if (!db) {
-        send_http_response(client_sock, 500, "text/plain", "Database is dead");
+        send_http_response(client, 500, "text/plain", "Database is dead");
         return;
     }
 
@@ -327,7 +313,7 @@ void send_homepage(int client_sock, sqlite3 *db, const char *path, const char *b
     size_t length = 0;
     FILE *stream = open_memstream(&links, &length);
     if (!stream) {
-        send_http_response(client_sock, 500, "text/plain", "Could not build todo list");
+        send_http_response(client, 500, "text/plain", "Could not build todo list");
         return;
     }
     struct todo_list list = {.stream = stream};
@@ -336,33 +322,33 @@ void send_homepage(int client_sock, sqlite3 *db, const char *path, const char *b
     if (fclose(stream) != 0) list.failed = 1;
     if (status != OK || list.failed) {
         free(links);
-        send_http_response(client_sock, 500, "text/plain", "Could not build todo list");
+        send_http_response(client, 500, "text/plain", "Could not build todo list");
         return;
     }
     TemplateVar vars[] = {{"todo_list", links}};
-    send_rendered_page(client_sock, "frontend/index.html", vars, 1);
+    send_rendered_page(client, "frontend/index.html", vars, 1);
     free(links);
 }
 
 
-void send_todo_page(int client_sock, sqlite3 *db, const char *path, const char *body)
+void send_todo_page(TLSClient *client, sqlite3 *db, const char *path, const char *body)
 {
     (void)body;
 
     if (!db) {
-        send_http_response(client_sock, 500, "text/plain", "Database is dead-ass");
+        send_http_response(client, 500, "text/plain", "Database is dead-ass");
         return;
     }
 
     int id = 0;
     if (sscanf(path, "/todos/%d", &id) != 1 || id <= 0) {
-        send_404(client_sock, db, path, body);
+        send_404(client, db, path, body);
         return;
     }
 
     struct todo_data todo = {0};
     if (get_todo(db, id, &todo) != OK) {
-        send_404(client_sock, db, path, body);
+        send_404(client, db, path, body);
         return;
     }
 
@@ -373,14 +359,14 @@ void send_todo_page(int client_sock, sqlite3 *db, const char *path, const char *
     char *content = escape_html(todo.content);
     char *content_html = render_markdown(todo.content);
     if (!title || !content || !content_html) {
-        send_http_response(client_sock, 500, "text/plain", "Could not render todo");
+        send_http_response(client, 500, "text/plain", "Could not render todo");
     } else {
         TemplateVar vars[] = {
             {"id", id_text}, {"title", title}, {"content", content},
             {"content_html", content_html},
             {"done", todo.is_done ? "1" : "0"}, {"created_at", created_at}
         };
-        send_rendered_page(client_sock, "frontend/template.html", vars,
+        send_rendered_page(client, "frontend/template.html", vars,
                            sizeof(vars) / sizeof(vars[0]));
     }
     free(title);
@@ -391,12 +377,12 @@ void send_todo_page(int client_sock, sqlite3 *db, const char *path, const char *
     free(todo.content);
 }
 
-void handle_post(int client_sock, sqlite3 *db, const char *path, const char *body)
+void handle_post(TLSClient *client, sqlite3 *db, const char *path, const char *body)
 {
     (void)path;
 
     if (!db) {
-        send_http_response(client_sock, 500, "text/plain", "Database is dead");
+        send_http_response(client, 500, "text/plain", "Database is dead");
         return;
     }
 
@@ -410,7 +396,7 @@ void handle_post(int client_sock, sqlite3 *db, const char *path, const char *bod
         if (todo_begins) todo_begins++;
     }
     if (!todo_begins) {
-        send_http_response(client_sock, 400, "text/plain", "Missing todo field");
+        send_http_response(client, 400, "text/plain", "Missing todo field");
         return;
     }
 
@@ -424,7 +410,7 @@ void handle_post(int client_sock, sqlite3 *db, const char *path, const char *bod
     url_decode(decoded);
 
     if (decoded[0] == '\0') {
-        send_http_response(client_sock, 400, "text/plain", "Todo must not be empty");
+        send_http_response(client, 400, "text/plain", "Todo must not be empty");
         return;
     }
 
@@ -432,11 +418,11 @@ void handle_post(int client_sock, sqlite3 *db, const char *path, const char *bod
 
     if (add_todo(db, decoded, decoded) != OK) {
         fprintf(stderr, "FUCK: add_todo failed\n");
-        send_http_response(client_sock, 500, "text/plain", "Failed to create todo");
+        send_http_response(client, 500, "text/plain", "Failed to create todo");
         return;
     }
 
-    send_redirect(client_sock, "/");
+    send_redirect(client, "/");
 }
 
 
@@ -471,11 +457,11 @@ static int form_field(const char *body, const char *name, char *out, size_t capa
     return(found);
 }
 
-void handle_complete(int client_sock, sqlite3 *db, const char *path, const char *body)
+void handle_complete(TLSClient *client, sqlite3 *db, const char *path, const char *body)
 {
     (void)path;
     if (!db) {
-        send_http_response(client_sock, 500, "text/plain", "Database is dead");
+        send_http_response(client, 500, "text/plain", "Database is dead");
         return;
     }
 
@@ -487,39 +473,39 @@ void handle_complete(int client_sock, sqlite3 *db, const char *path, const char 
         (strcmp(completed, "0") != 0 && strcmp(completed, "1") != 0) ||
         (return_to[0] && strcmp(return_to, "home") != 0 && strcmp(return_to, "detail") != 0)) {
     
-        send_http_response(client_sock, 400, "text/plain", "Invalid completion fields");
+        send_http_response(client, 400, "text/plain", "Invalid completion fields");
         return;
     }
 
     errno = 0;
     long parsed_id = strtol(id_text, NULL, 10);
     if (errno == ERANGE || parsed_id <= 0 || parsed_id > INT_MAX) {
-        send_http_response(client_sock, 400, "text/plain", "Invalid id");
+        send_http_response(client, 400, "text/plain", "Invalid id");
         return;
     }
 
     int id = (int)parsed_id;
     enum STATUS status = set_todo_completed(db, id, completed[0] == '1');
     if (status == TODO_NOT_FOUND) {
-        send_404(client_sock, db, path, body);
+        send_404(client, db, path, body);
         return;
     }
     if (status != OK) {
-        send_http_response(client_sock, 500, "text/plain", "Completion update failed");
+        send_http_response(client, 500, "text/plain", "Completion update failed");
         return;
     }
 
     char location[64];
     snprintf(location, sizeof(location), "/todos/%d", id);
-    send_redirect(client_sock, strcmp(return_to, "home") == 0 ? "/" : location);
+    send_redirect(client, strcmp(return_to, "home") == 0 ? "/" : location);
 }
 
-void handle_update(int client_sock, sqlite3 *db, const char *path, const char *body)
+void handle_update(TLSClient *client, sqlite3 *db, const char *path, const char *body)
 {
     (void)path;
 
     if (!db) {
-        send_http_response(client_sock, 500, "text/plain", "Database is dead");
+        send_http_response(client, 500, "text/plain", "Database is dead");
         return;
     }
 
@@ -527,21 +513,21 @@ void handle_update(int client_sock, sqlite3 *db, const char *path, const char *b
     if (form_field(body, "id", id_text, sizeof(id_text)) != 1 ||
         form_field(body, "content", content, sizeof(content)) != 1 ||
         !id_text[0] || strspn(id_text, "0123456789") != strlen(id_text)) {
-        send_http_response(client_sock, 400, "text/plain", "Invalid id or content");
+        send_http_response(client, 400, "text/plain", "Invalid id or content");
         return;
     }
 
     errno = 0;
     long parsed_id = strtol(id_text, NULL, 10);
     if (errno == ERANGE || parsed_id <= 0 || parsed_id > INT_MAX) {
-        send_http_response(client_sock, 400, "text/plain", "Invalid id");
+        send_http_response(client, 400, "text/plain", "Invalid id");
         return;
     }
     int id = (int)parsed_id;
 
     if (update_todo(db, id, content) != OK) {
         fprintf(stderr, "Update failed for id %d\n", id);
-        send_http_response(client_sock, 500, "text/plain", "Update failed");
+        send_http_response(client, 500, "text/plain", "Update failed");
         return;
     }
 
@@ -549,16 +535,16 @@ void handle_update(int client_sock, sqlite3 *db, const char *path, const char *b
 
     char location[64];
     snprintf(location, sizeof(location), "/todos/%d", id);
-    send_redirect(client_sock, location);
+    send_redirect(client, location);
 }
 
 
-void handle_delete(int client_sock, sqlite3 *db, const char *path, const char *body)
+void handle_delete(TLSClient *client, sqlite3 *db, const char *path, const char *body)
 {
     (void)path;
 
     if (!db) {
-        send_http_response(client_sock, 500, "text/plain", "Database is dead");
+        send_http_response(client, 500, "text/plain", "Database is dead");
         return;
     }
 
@@ -568,7 +554,7 @@ void handle_delete(int client_sock, sqlite3 *db, const char *path, const char *b
 
     char *id_start = strstr(mutable_body, "id=");
     if (!id_start) {
-        send_http_response(client_sock, 400, "text/plain", "Missing id");
+        send_http_response(client, 400, "text/plain", "Missing id");
         return;
     }
 
@@ -582,7 +568,7 @@ void handle_delete(int client_sock, sqlite3 *db, const char *path, const char *b
 
     int id = atoi(id_str);
     if (id <= 0) {
-        send_http_response(client_sock, 400, "text/plain", "Invalid id");
+        send_http_response(client, 400, "text/plain", "Invalid id");
         return;
     }
 
@@ -592,9 +578,9 @@ void handle_delete(int client_sock, sqlite3 *db, const char *path, const char *b
 
     else {
         fprintf(stderr, "Could not delete id %d\n", id);
-        send_http_response(client_sock, 500, "text/plain", "Delete failed");
+        send_http_response(client, 500, "text/plain", "Delete failed");
         return;
     }
 
-    send_redirect(client_sock, "/");
+    send_redirect(client, "/");
 }
