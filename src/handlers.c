@@ -156,13 +156,13 @@ void send_404(TLSClient *client, sqlite3 *db, const char *path, const char *body
 {
     (void)db; (void)path; (void)body;
     char page_path[PATH_MAX];
-    FILE *page = get_server_path(page_path, sizeof(page_path), "frontend/404_not_found.html") == OK
+    FILE *page = get_server_path(page_path, sizeof(page_path), "frontend/404.html") == OK
         ? fopen(page_path, "rb") : NULL;
     struct stat info;
     if (!page || fstat(fileno(page), &info) < 0 || !S_ISREG(info.st_mode) ||
         info.st_size < 0 || (uintmax_t)info.st_size > SIZE_MAX) {
         if (page) fclose(page);
-        // Keep 404 usable until the custom file has been created.
+        // Keep 404 usable if the custom page is missing or unreadable.
         send_http_response(client, 404, "text/plain", "404 - Not Found");
         return;
     }

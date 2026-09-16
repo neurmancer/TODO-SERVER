@@ -12,7 +12,7 @@
 
     function isPage(url) {
         return url.origin === window.location.origin &&
-            (url.pathname === '/' || /^\/todos\/\d+$/.test(url.pathname));
+            (url.pathname === '/' || url.pathname === '/404.html' || /^\/todos\/\d+$/.test(url.pathname));
     }
 
     function saveScroll() {
@@ -40,12 +40,15 @@
                 cache: 'no-store',
                 signal: AbortSignal.timeout(15000),
             });
-            if (!response.ok) throw new Error(`Server returned ${response.status}`);
+            if (!response.ok && response.status !== 404) throw new Error(`Server returned ${response.status}`);
             const destination = new URL(response.url);
             if (!response.redirected) destination.hash = url.hash;
             const page = new DOMParser().parseFromString(await response.text(), 'text/html');
             const replacement = page.getElementById('page-content');
-            if (!isPage(destination) || !replacement) throw new Error('Unexpected page response');
+            if (destination.origin !== window.location.origin ||
+                (!isPage(destination) && response.status !== 404) || !replacement) {
+                throw new Error('Unexpected page response');
+            }
             
             if (pendingPop) return;
 
