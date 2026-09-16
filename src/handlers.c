@@ -58,6 +58,7 @@ static int send_headers(TLSClient *client, int code, const char *content_type,
         "Content-Type: %s\r\n"
         "Content-Length: %zu\r\n"
         "%s%s%s"
+        "Cache-Control: no-store\r\n"
         "Connection: close\r\n"
         "\r\n",
         code, get_status_meaning(code), content_type, length,

@@ -470,3 +470,34 @@ body { padding-bottom: 112px; }
     .music-btn { transition: none; }
     .music-btn:hover, .music-btn:focus-visible { transform: none; }
 }
+
+/* A front door for the chaos. */
+.login-page { max-width: 700px; display: grid; align-items: center; }
+.login-shell { width: 100%; }
+.login-page .page-header { margin: 12px 0 30px; }
+.login-page .page-header > p:last-child { color: var(--muted); }
+.login-cursor { color: var(--green); text-shadow: 0 0 12px #39ff1466; }
+.login-card { max-width: 480px; margin: 0 auto; padding: 28px; border-top: 2px solid var(--purple); }
+.login-card-top { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .8rem; margin-bottom: 26px; }
+.login-card-top > span:last-child { margin-left: auto; color: var(--purple); }
+.login-light { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px #39ff1455; }
+.login-card h2 { margin-bottom: 8px; font-size: 1.2rem; }
+.login-intro { color: var(--muted); font-size: .9rem; margin: 0 0 26px; }
+.login-card label { font-size: .9rem; }
+.login-card input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--background); color: #e6edf3; }
+.login-card input:focus-visible { border-color: var(--green); }
+.login-card input[name="username"] { margin-bottom: 20px; }
+.password-control { display: flex; position: relative; }
+.password-control input { padding-right: 76px; }
+.password-control button { position: absolute; right: 6px; top: 6px; padding: 5px 9px; font-size: .8rem; }
+.login-status { min-height: 1.7em; color: #ffa7b5; font-size: .85rem; margin: 14px 0; }
+.login-submit { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; }
+.login-submit:disabled { opacity: .65; cursor: wait; }
+.login-footnote { color: var(--muted); font-size: .75rem; text-align: center; margin: 22px 0 0; }
+.login-page .footer { margin-top: 30px; font-size: .8rem; }
+.session-controls { text-align: right; margin-bottom: 16px; }
+.session-controls button { font-size: .8rem; padding: 5px 12px; }
+@media (max-width: 480px) {
+    .login-page { padding: 24px 16px; }
+    .login-card { padding: 22px 18px; }
+}

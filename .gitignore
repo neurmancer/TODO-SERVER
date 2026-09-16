@@ -1,0 +1,14 @@
+tests/
+referance/
+todo.db
+*.o
+/server
+*.pem
+
+# Private deployment files (runtime configuration lives outside this repository).
+.env
+.env.*
+!.env.example
+*.key
+/Caddyfile
+/.server/

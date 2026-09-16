@@ -6,6 +6,13 @@
     const status = document.getElementById('navigation-status');
     if (!content || !status) return;
 
+    let loginEnabled = false;
+    const updateSignOut = () => document.querySelectorAll('.session-controls')
+        .forEach(form => { form.hidden = !loginEnabled; });
+    fetch('/auth/status', { cache: 'no-store' }).then(response => response.json())
+        .then(result => { loginEnabled = result.enabled === true; updateSignOut(); }).catch(() => {});
+    document.addEventListener('pagechange', updateSignOut);
+
     let busy = false;
     let pendingPop = false;
     let displayedUrl = window.location.href;
@@ -40,6 +47,10 @@
                 cache: 'no-store',
                 signal: AbortSignal.timeout(15000),
             });
+            if (response.status === 401 || new URL(response.url).pathname === '/login') {
+                window.location.assign('/login');
+                return;
+            }
             if (!response.ok && response.status !== 404) throw new Error(`Server returned ${response.status}`);
             const destination = new URL(response.url);
             if (!response.redirected) destination.hash = url.hash;

@@ -1,5 +1,6 @@
 #include "router.h"
 #include "handlers.h"
+#include "auth.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -62,6 +63,8 @@ void handle_request(TLSClient *client, sqlite3 *db, const char *raw) {
     const char *body = strstr(raw, "\r\n\r\n");
     if (body) body += 4;
     else body = "";
+
+    if (auth_handle(client, method, path, raw, body)) return;
 
     for (int i = 0; i < route_count; i++) {
         Route *r = &routes[i];

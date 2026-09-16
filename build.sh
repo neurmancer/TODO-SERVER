@@ -9,9 +9,10 @@ SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}.service"
 die() { echo "ERROR: $*" >&2; exit 1; }
 
 usage() {
-    echo "Usage: $0 [install|local|remove|delete|--help]"
+    echo "Usage: $0 [install|update|local|remove|delete|--help]"
     echo "  install  Upgrade packages, build, install, and start the server (default)."
-    echo '           Open TCP 8080 in the public zone when firewalld is active.'
+    echo '           Listen only on localhost:8080; use deploy.sh --domain for public HTTPS.'
+    echo '  update   Rebuild, install, and restart the service using existing dependencies.'
     echo '  local    Build here and copy frontend/database to $HOME/.server; skip service setup.'
     echo '  remove   Uninstall the service and executable; preserve $HOME/.server.'
     echo '  delete   Uninstall and permanently delete $HOME/.server/db and frontend.'
@@ -21,7 +22,7 @@ usage() {
 [[ $# -le 1 ]] || die "Expected at most one argument. Use --help for usage."
 ACTION=${1:-install}
 case "$ACTION" in
-    install|local|remove|delete) ;;
+    install|update|local|remove|delete) ;;
     -h|--help|help) usage; exit 0 ;;
     *) die "Unknown argument: $ACTION. Use --help for usage." ;;
 esac
@@ -72,14 +73,14 @@ cd -- "$SCRIPT_DIR"
 
 [[ -f Makefile && -f frontend/index.html && -f frontend/template.html ]] || die "Project sources or frontend files are missing."
 
-if [[ $ACTION != local ]]; then
+if [[ $ACTION == install ]]; then
     echo ">>> Upgrading packages and installing dependencies..."
     if command -v pacman >/dev/null; then
-        sudo pacman -Syu --needed base-devel sqlite curl openssl
+        sudo pacman -Syu --needed base-devel sqlite curl openssl python
     elif command -v apt-get >/dev/null; then
         sudo apt-get update
         sudo apt-get upgrade -y
-        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 curl libssl-dev openssl
+        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 curl libssl-dev openssl python3
     else
         die "Supported package managers are pacman (Arch) and apt-get (Debian/Ubuntu)."
     fi
@@ -183,20 +184,8 @@ if ! curl --cacert "$SERVER_PATH/tls/cert.pem" --fail --silent --show-error --re
     die "The server did not pass its startup checks. See the diagnostics above."
 fi
 
-echo ">>> Configuring HTTPS access through firewalld..."
-if command -v firewall-cmd >/dev/null && systemctl is-active --quiet firewalld.service; then
-    sudo firewall-cmd --zone=public --add-port=8080/tcp
-    sudo firewall-cmd --permanent --zone=public --add-port=8080/tcp
-    sudo firewall-cmd --zone=public --query-port=8080/tcp ||
-        die "TCP 8080 is not open in firewalld's runtime public zone."
-    sudo firewall-cmd --permanent --zone=public --query-port=8080/tcp ||
-        die "TCP 8080 is not open in firewalld's permanent public zone."
-    echo "TCP 8080 is open in the public zone now and after reboot."
-    echo "Check that your network interface uses this zone: sudo firewall-cmd --get-active-zones"
-else
-    echo "Skipping firewall setup: firewalld is not installed or active."
-    echo "If another firewall is in use, allow inbound TCP 8080 there."
-fi
+echo "The backend listens only on localhost:8080; no public firewall port is needed."
+echo "For public HTTPS, run ./deploy.sh --domain YOUR_DOMAIN after installing Caddy."
 
 make clean
 
@@ -208,6 +197,7 @@ echo "Service runs as:     ${RUN_USER}"
 echo "Starts automatically at boot."
 echo ""
 echo "Useful commands:"
+echo "  ./build.sh update  # Rebuild, install, restart, and check HTTPS"
 echo "  ./build.sh remove  # Uninstall; keep database and frontend files"
 echo "  ./build.sh delete  # Uninstall and permanently delete database and frontend"
 echo "  sudo systemctl restart ${SERVICE_NAME}"

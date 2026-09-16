@@ -2,6 +2,7 @@
 #include "src/handlers.h"
 #include "src/database.h"
 #include "src/request.h"
+#include "src/auth.h"
 
 #include <netinet/in.h>
 #include <stdio.h>
@@ -13,8 +14,6 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
-#include <ifaddrs.h>
-#include <net/if.h>
 
 #ifndef PORT
 #define PORT 8080
@@ -34,9 +33,52 @@ void sigHandler(int sigNum);
 
 volatile sig_atomic_t flag = 1; 
 
+/* Browsers may try plain HTTP when the scheme is omitted. Consume its headers
+ * before replying so closing the socket doesn't reset the redirect response.
+ * Use a fixed local destination, never an untrusted Host header. */
+static int redirect_plain_http(int socket)
+{
+    unsigned char first;
+    ssize_t count = recv(socket, &first, 1, MSG_PEEK);
+    if (count <= 0) return -1;
+    if (first != 'G' && first != 'H') return 0;
+
+    char headers[4096];
+    size_t used = 0;
+    while (used < sizeof(headers) - 1) {
+        count = recv(socket, headers + used, 1, 0);
+        if (count != 1) return -1;
+        used++;
+        headers[used] = '\0';
+        if (used >= 4 && memcmp(headers + used - 4, "\r\n\r\n", 4) == 0)
+            break;
+    }
+    if (used < 4 || memcmp(headers + used - 4, "\r\n\r\n", 4) != 0 ||
+        (strncmp(headers, "GET ", 4) != 0 && strncmp(headers, "HEAD ", 5) != 0))
+        return -1;
+
+    char response[256];
+    int length = snprintf(response, sizeof(response),
+        "HTTP/1.1 308 Permanent Redirect\r\n"
+        "Location: https://localhost:%d/\r\n"
+        "Content-Length: 0\r\nConnection: close\r\n\r\n", PORT);
+    if (length < 0 || (size_t)length >= sizeof(response)) return -1;
+    size_t sent = 0;
+    while (sent < (size_t)length) {
+        count = send(socket, response + sent, (size_t)length - sent, 0);
+        if (count <= 0) return -1;
+        sent += (size_t)count;
+    }
+    return 1;
+}
+
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
+    if (auth_init() != 0) {
+        fprintf(stderr, "Invalid or unreadable auth credentials; refusing to start.\n");
+        return EXIT_FAILURE;
+    }
 
     int server_sock = -1;
     int client_sock = -1;
@@ -46,7 +88,6 @@ int main(void)
 
     int exit_status = EXIT_FAILURE;
 
-    struct ifaddrs *interfaces = NULL;
     sqlite3 *db = set_db();
 
     if (!db) { return(EXIT_FAILURE); }
@@ -102,7 +143,7 @@ int main(void)
     }
 
     server_addr.sin_family = AF_INET; // Internet As Fuck 
-    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     server_addr.sin_port = htons(PORT);
 
     if (bind(server_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
@@ -116,29 +157,6 @@ int main(void)
     }
 
     printf("Server is running on https://localhost:%d\n", PORT);
-    if (getifaddrs(&interfaces) == -1) {
-        perror("getifaddrs failed");
-        goto rome;
-    }
-
-    for (struct ifaddrs *device = interfaces; device != NULL; device = device->ifa_next) {
-        if (device->ifa_addr == NULL || device->ifa_addr->sa_family != AF_INET ||
-            !(device->ifa_flags & IFF_UP) || (device->ifa_flags & IFF_LOOPBACK)) {
-            continue;
-        }
-
-        struct sockaddr_in *address = (struct sockaddr_in *)device->ifa_addr;
-        char ip[INET_ADDRSTRLEN];
-        if (inet_ntop(AF_INET, &address->sin_addr, ip, sizeof(ip)) == NULL) {
-            perror("inet_ntop failed");
-            goto rome;
-        }
-
-        printf("Local network (%s): https://%s:%d\n", device->ifa_name, ip, PORT);
-    }
-    freeifaddrs(interfaces);
-    interfaces = NULL;
-
     while (flag) {
         
         socklen_t client_len = sizeof(client_addr);
@@ -160,7 +178,8 @@ int main(void)
             continue;
         }
 
-        if (tls_accept(&client, context, client_sock) < 0) {
+        if (redirect_plain_http(client_sock) != 0 ||
+            tls_accept(&client, context, client_sock) < 0) {
             tls_close(&client);
             close(client_sock);
             client_sock = -1;
@@ -192,7 +211,6 @@ int main(void)
 rome:
     tls_close(&client);
     SSL_CTX_free(context);
-    if (interfaces != NULL) freeifaddrs(interfaces);
     if (client_sock != -1) close(client_sock);
     if (server_sock != -1) close(server_sock);
     sqlite3_close(db);
