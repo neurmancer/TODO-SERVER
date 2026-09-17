@@ -15,3 +15,25 @@ todo.db
 /Server/Caddyfile
 /.server/
 /Server/.server/
+
+# Local Android configuration, SDK, and build outputs
+/Client/local.properties
+/Client/server.properties
+/Client/.gradle/
+/Client/.android-sdk/
+/Client/**/build/
+/Client/.idea/
+*.iml
+*.apk
+*.aab
+
+# Certificates, signing keys, and local deployment credentials
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+/.cloudflared/
+/Server/.cloudflared/
+/auth/credentials
+/Server/auth/credentials

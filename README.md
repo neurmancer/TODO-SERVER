@@ -27,7 +27,7 @@ because apparently a todo list needs a soundtrack
 ## Bragging
 
 - Well...we got cool stuff such as
-    - Randomized music playing jukebox (I'll add more songs when youtube stops bitcihng about tha vandalism)
+    - Randomized music playing jukebox using direct HTTPS audio links (YouTube finally left the building)
 
     - Dope-ass login screen
     - markdown formatting for todos('cuz...yk it looks nice).

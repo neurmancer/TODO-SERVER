@@ -274,10 +274,49 @@ void send_favicon(TLSClient *client, sqlite3 *db, const char *path, const char *
 
 //You thought this wasn't gonna have a jukebox? Nah you're trippin'
 //Selecting the songs rigorusly was harder than the whole fucking project lol
-//Well...current version got the songs deleted because youtube is being a bitch...
+//Direct HTTPS audio links; each one must play without signing in.
 static const char *const jukebox_songs[] = {
-    "8QG7CEuUqMc",  // Everytime we touch
-    "fDdbTsw0Vuk",  // I'm blue (rock version)  
+"https://drive.google.com/uc?export=open&id=1vzC0YESu0JxHRP6hxKO1TS54FOXHw3c5", //Bring Me To Life - The OG
+"https://drive.google.com/uc?export=open&id=1Ea99sesm8Ho-gp08jaySqgwXB_-MR-oj", //Lithium
+"https://drive.google.com/uc?export=open&id=1_bPQGDr58Sk_gZLP_FgB-0O7RMi5f6sE", //My Immortal
+"https://drive.google.com/uc?export=open&id=19XGnFxFeJG68XmTbckq5_BpfkIK5udey", //I Hate Everything About You (that's you J*va)
+"https://drive.google.com/uc?export=open&id=1YdCiss7e9pFfuuhDxpAB91kjxflPOdw5", //Pain (Javascript)
+"https://drive.google.com/uc?export=open&id=1XHR_qNuP2VCISxJrhnzFqrNKhS8XpfeN", //Boulevard of Broken Dreams
+"https://drive.google.com/uc?export=open&id=18G2SYGLKntyhzgLXZJ0LJdmkNkxpJf5E", //Unforgiven (CSS)
+"https://drive.google.com/uc?export=open&id=1CpFLSZwQliL9uDfYplewixTY4iuvlid4", //Fade To Black
+"https://drive.google.com/uc?export=open&id=1fPDH35PpZqSxNUxW0Pxrakv5iSvKi8u1", //How You Remind Me
+"https://drive.google.com/uc?export=open&id=1C-IcedC0m2aRJnGNpLztS-960AE4QIP4", //Lithium
+"https://drive.google.com/uc?export=open&id=10XGgVvBJJkP6XLux0OhKcqzENPZ07nF0", //Still Loving You (yup...that's her)
+"https://drive.google.com/uc?export=open&id=1fJNOgM3PMav_vf0MwhOR7ZVnYDfH-dLh", //Don't Fear The Reaper
+"https://drive.google.com/uc?export=open&id=1QmFON5P2dDa0_0-Qwn_l6iPlNsdhyYQc", //Angel With A Shotgun
+"https://drive.google.com/uc?export=open&id=1mFC4ZYCDnyHU7kAkYi_ujsKwZGU_imBN", //Rockefeller Street
+"https://drive.google.com/uc?export=open&id=1OW6MmzzRFk-fN7ztpcm-Zwm3LnB8KYJO", //Teeth
+"https://drive.google.com/uc?export=open&id=1uU2mjKzS-wUUxcwGJ4Dsv2tDOx0zfWeE", //Take a Hint
+"https://drive.google.com/uc?export=open&id=1AcytXQetZIAHnfpg7parij8JTmKTSKiT", //How to Be a Heartbreaker
+"https://drive.google.com/uc?export=open&id=165F_05Gmr-iz5gjTTAjcwaEB9pZpHWLz", //Light it Up
+"https://drive.google.com/uc?export=open&id=1mHtT9xwhyjNZKxpPsza0UgUsQTol0kZf", //Pretty Rave Girl
+"https://drive.google.com/uc?export=open&id=1tYChoSq68A3IiyQ9A8oUe03PVOLfTAwd", //All I Ever Wanted
+"https://drive.google.com/uc?export=open&id=1sU39rFpMAb4ajAFvGAsGpu3oJCv540FH", //Angel of Darkness
+"https://drive.google.com/uc?export=open&id=1AcSaE1naXCEZgP4RJVIx__Kv-Pg5D3Bf", //Pretty Little Psycho
+"https://drive.google.com/uc?export=open&id=1S2kGe2IF2jO-F8mGReNb16eULHVrDo4g", //Maps (Rock Version 'cuz why not
+"https://drive.google.com/uc?export=open&id=1j6quK4yfQ-V4rpmDECUnWg5xglOeF22d", //Ace of Spades
+"https://drive.google.com/uc?export=open&id=1WBJrOQTFzlmkQ5z0Q_EBfvBTMcuXSK3J", //Too Late Too Late
+"https://drive.google.com/uc?export=open&id=1hEIX3vW2nalBgn2V0gyzn4iHrDjmDglz", //Am I Evil? (nah...I'm just autistic AF)
+"https://drive.google.com/uc?export=open&id=1TA4Kpj3Oc_Cz70RUaMzlviL1uRwTf_IV", //In the Heat of The Night
+"https://drive.google.com/uc?export=open&id=1hrL2x7x7SRdEeJdehbuwmSik_dJBcuGR", //Denim & Leather
+"https://drive.google.com/uc?export=open&id=1MesOIRuHZqty4OqvFhEvqjJjMuKmu6T6", //Fire in The Sky
+"https://drive.google.com/uc?export=open&id=1gKy2Juy8sBNvNUoZhSK--go2LSb1niv-", //The Trooper
+"https://drive.google.com/uc?export=open&id=1S6Ikwiyt6q5fQBJiyi8cBPpg5btZXKb2", //Prisoner of Your (Hazel) Eyes
+"https://drive.google.com/uc?export=open&id=1p1r9InaIGQYSbouOabUicTRJw2phNTfq", //Toxic
+"https://drive.google.com/uc?export=open&id=1vICbwuedVzN-k5nt3wc5hIZECTCZyMRE", //Gimme More
+"https://drive.google.com/uc?export=open&id=1AI1qJxkp73IxiYuUrg11U07MkRYoPTQb", //Oops!...I Did It Again
+"https://drive.google.com/uc?export=open&id=1L3JPUMiqoykptsdTkF8xzRoOHouyGrbn", //S&M
+"https://drive.google.com/uc?export=open&id=1Yx_n1dMvqmZBtweq4yRkReiAy9pl7b5q", //Call Me Maybe
+"https://drive.google.com/uc?export=open&id=1XOlk2SbEp8YEQSIm0kLlmyQ59m9WJgfw", //Bad Romance
+"https://drive.google.com/uc?export=open&id=1Jo37Lza4Z8caEuWU0mmm1GTdLY1reMye", //Judas
+"https://drive.google.com/uc?export=open&id=1rbxz8r20K8FFt5_aDJDp6cFwu9TwuZwP", //If U Seek Amy
+"https://drive.google.com/uc?export=open&id=1o0-CpP0r-ATeY_EDvYAaehfi4--4_yii", //I Kissed a Girl
+"https://drive.google.com/uc?export=open&id=1VbU4WSPnkc-0szpSDAmLeKa96VebmK2U", //...Baby One More Time
     NULL, /* you forget that you fucked. */
 };
 
