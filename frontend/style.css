@@ -331,6 +331,27 @@ input:focus-visible, textarea:focus-visible {
     animation: glitch-layer-done 1.1s infinite steps(3);
 }
 
+/* The 404 got the same neon malfunction as a completed todo. */
+.error-glitch {
+    display: inline-grid;
+    color: var(--green);
+    filter: drop-shadow(0 0 10px rgba(57, 255, 20, 0.35));
+}
+
+.error-glitch-code,
+.error-glitch-layer { grid-area: 1 / 1; }
+
+.error-glitch-code {
+    animation: glitch-1 1.6s infinite linear alternate-reverse;
+}
+
+.error-glitch-layer {
+    color: var(--purple);
+    pointer-events: none;
+    user-select: none;
+    animation: glitch-layer-done 1.1s infinite steps(3);
+}
+
 .todo-item:hover .binary-box,
 .todo-item:focus-within .binary-box {
     border-color: var(--purple);
@@ -389,12 +410,15 @@ input:focus-visible, textarea:focus-visible {
     .binary-box::before,
     .binary-box::after,
     .binary-box.is-done::before,
-    .binary-box.is-done::after {
+    .binary-box.is-done::after,
+    .error-glitch-code,
+    .error-glitch-layer {
         animation: none;
         text-shadow: none;
     }
 
-    .binary-box::after { display: none; }
+    .binary-box::after,
+    .error-glitch-layer { display: none; }
 }
 
 /* ====== SHITTY JUKEBOX ==== */

@@ -15,21 +15,24 @@ and now I need a separate repo to keep developing it
 
 ---
 
-## Table of Contents 
+## Table of Contents
+
+> and yeah I'll keep a bullet point in every repo just pointing the table of contents
 
 - [ToC](#table-of-contents)
-> and yeah I'll keep a bullet point in every repo just pointing the table of contents 
-
 - [Disclaimer](#disclaimer)
-
 - [Shit I've Built](#features)
-
 - [Bragging](#other-stuff)
-
+- [Run the thing locally](#developerlocal-server-test)
+- [HTTPS and browser complaints](#https)
+- [Full Build](#full-build)
+- [Shit I might build next](#future-updates)
 - [Online Drafting](#deploy-on-your-domain)
-
+- [CGNAT being a pain? Use a tunnel](#cloudflare-tunnel-for-cgnat)
+- [Keep the private shit private](#keep-the-private-shit-private)
+- [Updating or taking it down](#updating-or-taking-it-down)
+- [Check that the thing actually works](#check-if-that-thing-actually-works)
 - [In Dev or will be In Dev](#dev-blog)
-
 - [Legal Shit](#legal-stuff-and-licensing)
 
 ---
@@ -73,7 +76,7 @@ Wanna just run the thing locally? No sudo or systemd ceremony needed:
 This builds `./server` and puts the frontend in `$HOME/.server/frontend`.
 If there's no installed db yet, it brings `src/db/todo.db` over to
 `$HOME/.server/db`. Already got a db there? It leaves your shit alone.
-No source db either? The server makes one on its first run.
+No source db either? I got you, the server makes one on its first run.
 
 You still gotta have the dependencies installed tho: `make`, a C compiler (I assume you know what a compiler is...),
 SQLite and OpenSSL development files, the `openssl` CLI, and `sqlite3` if
@@ -114,7 +117,7 @@ it before building:
 
 The browser will still complain 'cuz this certificate is self-signed.
 Trust `cert.pem` through your browser/OS certificate settings if you want to
-use it locally. **DO NOT share `key.pem`.** That one's private for a reason.
+use it locally. **DO NOT share `key.pem`.** That one's private for a fucking reason.
 
 To check that HTTPS actually works with certificate verification still on:
 
@@ -128,9 +131,6 @@ pair aside, rerun `./generate-cert.sh`, and restart the server. You'll need to
 trust the new cert again. Or put a CA-issued PEM certificate chain and its
 matching unencrypted private key at those same paths, then restart.
 
-Keep the TLS folder at `700` and the private key at `600`. Even `remove` and
-`delete` leave the TLS folder alone... uninstalling the app shouldn't quietly
-throw away its identity too.
 
 #### Full Build 
 
@@ -149,6 +149,7 @@ If you haven't checked the code yourself or you don't trust the author (me (the 
 -   moves the server into /usr/local/bin/
 -   cleans the residue of the build before leaving
 -   keeps the backend chilling on localhost:8080 (no public firewall ports opened)
+-   Now it deploys the site too Da fuck?
 
 To use:
 
@@ -162,7 +163,7 @@ chmod +x build.sh #if not an executable already
 
 ```
 
-Changed some code and wanna get the daemon caught up? Just run
+Changed some shit because div wasn't 'centered enough'? and wanna get the daemon caught up? Just run
 `./build.sh update` as your regular user. It builds first, then stops the
 service, installs the binary and frontend, restarts the thing, and checks HTTPS.
 If compilation eats shit, it hasn't stopped your running server yet.
@@ -229,10 +230,9 @@ build installs it too.
 Wanna use the login locally without a domain? From the project folder:
 
 ```bash
-python3 setup-auth.py --user todo   # What have I become? Tie getting another knot around the neck...
+python3 setup-auth.py --user todo #(or make this whater you want)   # What have I become? Tie getting another knot around the neck...
 ./build.sh update
 ```
-
 
 
 Then open **https://localhost:8080/login**. You can also preview that page before
@@ -243,7 +243,7 @@ Already deployed with the old browser popup? Run `./build.sh update`, then rerun
 `./deploy.sh --domain YOUR_DOMAIN`. Pick a password again when prompted; that
 replaces the old gateway login with the app's login page.
 
-Sessions last up to eight hours. **Sign out** invalidates the current session;
+Sessions last up to eight hours. **Dip out** invalidates the current session;
 restarting the server clears all sessions. Passwords are stored as salted(well seasoned)
 PBKDF2-SHA256 hashes (600,000 iterations), and cookies are Secure, HttpOnly, and
 SameSite=Strict. Five failed attempts pause login attempts for a minute across
@@ -260,6 +260,43 @@ if the browser is still unhappy. The actual docs, if you wanna dig into it:
 [Caddy automatic HTTPS](https://caddyserver.com/docs/automatic-https) and
 [the password-storage guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
 
+#### Cloudflare Tunnel for CGNAT
+
+ISP put you behind CGNAT? Port forwarding on your router alone won't get this
+thing online. Cloudflare Tunnel lets the machine connect outward instead.
+The domain needs to be active on Cloudflare, and `cloudflared` needs to be
+installed separately. Your app still runs here, so keep the machine awake.
+
+For this setup, traffic goes through Cloudflare and `cloudflared` straight to
+`https://127.0.0.1:8080`. Caddy isn't needed in that path. Enable **Always Use
+HTTPS** under your domain's **SSL/TLS → Edge Certificates** settings too.
+
+Set up the app login with `python3 setup-auth.py --user todo`, then run
+`./build.sh update` before publishing anything. Authorize the connector locally
+with `cloudflared tunnel login`. Keep the authorization certificate and tunnel
+credentials out of the repo, obviously.
+
+The configured tunnel uses a user service named `todo-tunnel.service`:
+
+```bash
+systemctl --user status todo-tunnel
+systemctl --user restart todo-tunnel
+journalctl --user -u todo-tunnel -f
+systemctl --user disable --now todo-tunnel # Take public access offline
+```
+
+Its private configuration lives in `$HOME/.cloudflared/todo-server.yml`; the
+service file lives in `$HOME/.config/systemd/user/todo-tunnel.service`.
+The configuration pins the backend certificate through `caPool`, expects
+`localhost` on that certificate, and keeps TLS verification on. A startup check
+refuses to launch the tunnel unless the backend says its login is enabled.
+
+User lingering is enabled for boot startup, so the tunnel doesn't need an open
+terminal or desktop login. The backend is still the system `server.service`.
+After replacing the backend's local certificate, restart both services so the
+tunnel loads its new trusted certificate. Don't run `deploy.sh --domain` to
+manage this setup; that script installs the separate Caddy deployment.
+
 #### Keep the private shit **private**
 
 Your actual domain goes in `/etc/todo-caddy/Caddyfile`, readable only by root
@@ -269,7 +306,7 @@ and account data under `/var/lib/todo-caddy`, with restricted permissions.
 The backend key stays in `$HOME/.server/tls`; only its public certificate gets
 copied to `/etc/todo-caddy/backend-cert.pem`.
 
-**None of that shit belongs in Git.** Don't drag deployment configs, logs, or runtime
+**None of that shit belongs in Git.** Don't drag deployment configs, logs, your love-life, or runtime
 folders into a commit. The domain can still show up in shell history, process
 arguments during deployment, and local service logs. If you don't want to type
 the actual domain into shell history:
@@ -279,9 +316,6 @@ read -r -p 'Domain: ' TODO_DOMAIN
 ./deploy.sh --domain "$TODO_DOMAIN"
 unset TODO_DOMAIN
 ```
-
-Your domain stays out of the repo this way. Public DNS and certificate
-transparency records can still show it... this isn't a domain invisibility spell.
 
 #### Updating or taking it down
 
@@ -295,7 +329,7 @@ Wanna stop public access? `sudo systemctl disable --now todo-caddy`.
 Do that before `./build.sh remove` or `./build.sh delete`. Those remove the
 backend; they leave the gateway config and certificates alone.
 
-#### Check that the thing actually works
+#### Check if that thing actually works
 
 With Caddy on `PATH`, run:
 
@@ -311,11 +345,11 @@ python3 scripts/test-deployment.py
 
 - An andriod client app using ja*a (I mean I've already crossed the language borders for this repo so...java might appear as well)
 
-- Login Page
+- Login Page (Also done)
 
-- Actual deployment process (I am still trying to figure out why my ISP bitching about my setup)
+- Actual deployment process (I am still trying to figure out why my ISP bitching about my setup) (Done and gone)
 
-- Cloudflare stuff 
+- Cloudflare stuff (Done) 
 
 
 ### Legal Stuff and Licensing
