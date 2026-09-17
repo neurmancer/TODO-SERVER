@@ -15,22 +15,32 @@ struct markdown_output {
 static void append_html(const MD_CHAR *text, MD_SIZE size, void *userdata)
 {
     struct markdown_output *out = userdata;
-    if (!out->failed && fwrite(text, 1, size, out->stream) != size) out->failed = 1;
+    if (!out->failed && fwrite(text, 1, size, out->stream) != size) {
+        out->failed = 1;
+    }
 }
 
 static int allowed_url(const char *url, size_t length, int image)
 {
-    if (!length) return(1);
+    if (!length) {
+        return(1);
+    }
     if ((length >= 8 && strncasecmp(url, "https://", 8) == 0) ||
         (length >= 7 && strncasecmp(url, "http://", 7) == 0) ||
-        (!image && length >= 7 && strncasecmp(url, "mailto:", 7) == 0)) return(1);
+        (!image && length >= 7 && strncasecmp(url, "mailto:", 7) == 0)) {
+        return(1);
+    }
 
     /* Relative paths, fragments and queries are allowed. Reject schemes and
      * encoded characters in the first path segment rather than guessing at them. */
     for (size_t i = 0; i < length; i++) {
         unsigned char ch = (unsigned char)url[i];
-        if (ch == '/' || ch == '#' || ch == '?') return(1);
-        if (ch <= ' ' || ch == ':' || ch == '%' || ch == '&' || ch == '\\') return(0);
+        if (ch == '/' || ch == '#' || ch == '?') {
+            return(1);
+        }
+        if (ch <= ' ' || ch == ':' || ch == '%' || ch == '&' || ch == '\\') {
+            return(0);
+        }
     }
     return(1);
 }
@@ -60,19 +70,27 @@ static void filter_urls(char *html)
 
 char *render_markdown(const char *source)
 {
-    if (!source) source = "";
+    if (!source) {
+        source = "";
+    }
     size_t size = strlen(source);
-    if (size > UINT_MAX) return(NULL);
+    if (size > UINT_MAX) {
+        return(NULL);
+    }
 
     char *html = NULL;
     size_t length = 0;
     FILE *stream = open_memstream(&html, &length);
-    if (!stream) return(NULL);
+    if (!stream) {
+        return(NULL);
+    }
     struct markdown_output output = {.stream = stream};
     unsigned flags = MD_FLAG_NOHTML | MD_FLAG_TABLES | MD_FLAG_STRIKETHROUGH |
                      MD_FLAG_TASKLISTS | MD_FLAG_PERMISSIVEAUTOLINKS;
     int result = md_html(source, (MD_SIZE)size, append_html, &output, flags, 0);
-    if (fclose(stream) != 0) output.failed = 1;
+    if (fclose(stream) != 0) {
+        output.failed = 1;
+    }
     if (result != 0 || output.failed) {
         free(html);
         return(NULL);

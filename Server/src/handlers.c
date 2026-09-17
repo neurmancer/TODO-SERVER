@@ -37,8 +37,9 @@ static const HttpStatus status_table[] = {
 static const char *get_status_meaning(int code)
 {
     for (size_t i = 0; i < sizeof(status_table) / sizeof(status_table[0]); i++) {
-        if (status_table[i].code == code)
+        if (status_table[i].code == code) {
             return(status_table[i].meaning);
+        }
     }
     return("Unknown Status");
 }
@@ -46,7 +47,7 @@ static const char *get_status_meaning(int code)
 
 static int send_all(TLSClient *client, const char *data, size_t length)
 {
-    return tls_write_all(client, data, length);
+    return(tls_write_all(client, data, length));
 }
 
 static int send_headers(TLSClient *client, int code, const char *content_type,
@@ -65,7 +66,9 @@ static int send_headers(TLSClient *client, int code, const char *content_type,
         location ? "Location: " : "", location ? location : "",
         location ? "\r\n" : "");
 
-    if (header_len < 0 || (size_t)header_len >= sizeof(header)) return(-1);
+    if (header_len < 0 || (size_t)header_len >= sizeof(header)) {
+        return(-1);
+    }
     return(send_all(client, header, (size_t)header_len));
 }
 
@@ -90,15 +93,17 @@ void send_request_error(TLSClient *client, int code)
 static void send_file_response(TLSClient *client, int code, const char *content_type,
                                FILE *file, size_t length)
 {
-    if (send_headers(client, code, content_type, length, NULL) < 0)
+    if (send_headers(client, code, content_type, length, NULL) < 0) {
         return;
+    }
 
     char buffer[16384];
     while (length > 0) {
         size_t count = length < sizeof(buffer) ? length : sizeof(buffer);
         size_t read_count = fread(buffer, 1, count, file);
-        if (read_count == 0 || send_all(client, buffer, read_count) < 0)
+        if (read_count == 0 || send_all(client, buffer, read_count) < 0) {
             return;
+        }
         length -= read_count;
     }
 }
@@ -124,11 +129,17 @@ static void send_rendered_page(TLSClient *client, const char *filename,
 // Database text must stay text when inserted into HTML or a textarea.
 static char *escape_html(const char *text)
 {
-    if (!text) text = "";
+    if (!text) {
+        text = "";
+    }
     size_t length = strlen(text);
-    if (length > (SIZE_MAX - 1) / 6) return(NULL);
+    if (length > (SIZE_MAX - 1) / 6) {
+        return(NULL);
+    }
     char *escaped = malloc(length * 6 + 1);
-    if (!escaped) return(NULL);
+    if (!escaped) {
+        return(NULL);
+    }
     char *out = escaped;
     for (; *text; text++) {
         const char *entity = NULL;
@@ -162,7 +173,9 @@ void send_404(TLSClient *client, sqlite3 *db, const char *path, const char *body
     struct stat info;
     if (!page || fstat(fileno(page), &info) < 0 || !S_ISREG(info.st_mode) ||
         info.st_size < 0 || (uintmax_t)info.st_size > SIZE_MAX) {
-        if (page) fclose(page);
+        if (page) {
+            fclose(page);
+        }
         // Keep 404 usable if the custom page is missing or unreadable.
         send_http_response(client, 404, "text/plain", "404 - Not Found");
         return;
@@ -177,13 +190,19 @@ static FILE *open_asset(const char *path, struct stat *info)
 {
     char relative[512];
     if (!path || path[0] != '/' || strlen(path) >= sizeof(relative) ||
-        strpbrk(path, "%\\") || path[strlen(path) - 1] == '/') return(NULL);
+        strpbrk(path, "%\\") || path[strlen(path) - 1] == '/') {
+        return(NULL);
+    }
     strcpy(relative, path + 1);
 
     char frontend_path[PATH_MAX];
-    if (get_server_path(frontend_path, sizeof(frontend_path), "frontend") != OK) return(NULL);
+    if (get_server_path(frontend_path, sizeof(frontend_path), "frontend") != OK) {
+        return(NULL);
+    }
     int fd = open(frontend_path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
-    if (fd < 0) return(NULL);
+    if (fd < 0) {
+        return(NULL);
+    }
     char *save = NULL;
     char *part = strtok_r(relative, "/", &save);
     while (part) {
@@ -193,10 +212,14 @@ static FILE *open_asset(const char *path, struct stat *info)
         }
         char *next = strtok_r(NULL, "/", &save);
         int flags = O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK;
-        if (next) flags |= O_DIRECTORY;
+        if (next) {
+            flags |= O_DIRECTORY;
+        }
         int child = openat(fd, part, flags);
         close(fd);
-        if (child < 0) return(NULL);
+        if (child < 0) {
+            return(NULL);
+        }
         fd = child;
         part = next;
     }
@@ -206,7 +229,9 @@ static FILE *open_asset(const char *path, struct stat *info)
         return(NULL);
     }
     FILE *file = fdopen(fd, "rb");
-    if (!file) close(fd);
+    if (!file) {
+        close(fd);
+    }
     return(file);
 }
 
@@ -279,7 +304,9 @@ struct todo_list {
 static void append_todo_link(struct todo_data *todo, void *userdata)
 {
     struct todo_list *list = userdata;
-    if (list->failed) return;
+    if (list->failed) {
+        return;
+    }
     char *title = escape_html(todo->title);
     if (!title) {
         list->failed = 1;
@@ -296,7 +323,9 @@ static void append_todo_link(struct todo_data *todo, void *userdata)
                 todo->id, todo->is_done ? 0 : 1, todo->is_done ? " is-done" : "",
                 todo->is_done ? 1 : 0, todo->is_done ? "Mark as pending" : "Mark as done",
                 title, todo->is_done ? "Mark as pending" : "Mark as done",
-                todo->id, title) < 0) list->failed = 1;
+                todo->id, title) < 0) {
+        list->failed = 1;
+    }
     free(title);
     list->count++;
 }
@@ -319,8 +348,12 @@ void send_homepage(TLSClient *client, sqlite3 *db, const char *path, const char 
     }
     struct todo_list list = {.stream = stream};
     enum STATUS status = foreach_todo(db, append_todo_link, &list);
-    if (!list.count && fprintf(stream, "<li>No todos yet.</li>") < 0) list.failed = 1;
-    if (fclose(stream) != 0) list.failed = 1;
+    if (!list.count && fprintf(stream, "<li>No todos yet.</li>") < 0) {
+        list.failed = 1;
+    }
+    if (fclose(stream) != 0) {
+        list.failed = 1;
+    }
     if (status != OK || list.failed) {
         free(links);
         send_http_response(client, 500, "text/plain", "Could not build todo list");
@@ -394,7 +427,9 @@ void handle_post(TLSClient *client, sqlite3 *db, const char *path, const char *b
     char *todo_begins = mutable_body;
     while (todo_begins && strncmp(todo_begins, "todo=", 5) != 0) {
         todo_begins = strchr(todo_begins, '&');
-        if (todo_begins) todo_begins++;
+        if (todo_begins) {
+            todo_begins++;
+        }
     }
     if (!todo_begins) {
         send_http_response(client, 400, "text/plain", "Missing todo field");
@@ -403,7 +438,9 @@ void handle_post(TLSClient *client, sqlite3 *db, const char *path, const char *b
 
     todo_begins += 5;
     char *todo_end = strpbrk(todo_begins, "&\r\n");
-    if (todo_end) *todo_end = '\0';
+    if (todo_end) {
+        *todo_end = '\0';
+    }
 
     char decoded[BUF_SIZE];
     strncpy(decoded, todo_begins, sizeof(decoded) - 1);
@@ -442,7 +479,9 @@ static int form_field(const char *body, const char *name, char *out, size_t capa
             memcpy(out, field + name_length + 1, value_length);
             out[value_length] = '\0';
             for (const char *encoded = out; *encoded; encoded++) {
-                if (*encoded != '%') continue;
+                if (*encoded != '%') {
+                    continue;
+                }
                 if (strspn(encoded + 1, "0123456789abcdefABCDEF") < 2 || (encoded[1] == '0' && encoded[2] == '0')){ return(-1); }
                 encoded += 2;
             }
@@ -561,7 +600,9 @@ void handle_delete(TLSClient *client, sqlite3 *db, const char *path, const char 
 
     id_start += 3;
     char *id_end = strpbrk(id_start, "&\r\n");
-    if (id_end) *id_end = '\0';
+    if (id_end) {
+        *id_end = '\0';
+    }
 
     char id_str[64] = {0};
     strncpy(id_str, id_start, sizeof(id_str) - 1);

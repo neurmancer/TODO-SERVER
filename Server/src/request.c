@@ -13,7 +13,9 @@ static int header_is(const char *start, size_t length, const char *name)
 static int parse_body_length(char *buffer, size_t header_size, size_t *body_size)
 {
     const char *line = strstr(buffer, "\r\n");
-    if (!line || line == buffer) return(400);
+    if (!line || line == buffer) {
+        return(400);
+    }
     line += 2;
     const char *headers_end = buffer + header_size - 2;
     int has_length = 0;
@@ -21,20 +23,28 @@ static int parse_body_length(char *buffer, size_t header_size, size_t *body_size
 
     while (line < headers_end) {
         const char *end = strstr(line, "\r\n");
-        if (!end || end > headers_end) return(400);
+        if (!end || end > headers_end) {
+            return(400);
+        }
         const char *colon = memchr(line, ':', (size_t)(end - line));
-        if (!colon || colon == line) return(400);
+        if (!colon || colon == line) {
+            return(400);
+        }
         for (const char *p = line; p < colon; p++) {
-            if (!isalnum((unsigned char)*p) && !strchr("!#$%&'*+-.^_`|~", *p))
+            if (!isalnum((unsigned char)*p) && !strchr("!#$%&'*+-.^_`|~", *p)) {
                 return(400);
+            }
         }
 
         size_t name_size = (size_t)(colon - line);
         const char *value = colon + 1;
         const char *value_end = end;
-        while (value < value_end && (*value == ' ' || *value == '\t')) value++;
-        while (value_end > value && (value_end[-1] == ' ' || value_end[-1] == '\t'))
+        while (value < value_end && (*value == ' ' || *value == '\t')) {
+            value++;
+        }
+        while (value_end > value && (value_end[-1] == ' ' || value_end[-1] == '\t')) {
             value_end--;
+        }
 
         if (header_is(line, name_size, "Transfer-Encoding")){ return(501); } 
 

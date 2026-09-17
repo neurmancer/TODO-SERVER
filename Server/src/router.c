@@ -57,19 +57,27 @@ void handle_request(TLSClient *client, sqlite3 *db, const char *raw) {
 
     // Query parameters aren't part of the route path.
     char *query = strchr(path, '?');
-    if (query) *query = '\0';
-
+    if (query) {
+        *query = '\0';
+    }
 
     const char *body = strstr(raw, "\r\n\r\n");
-    if (body) body += 4;
-    else body = "";
+    if (body) {
+        body += 4;
+    } else {
+        body = "";
+    }
 
-    if (auth_handle(client, method, path, raw, body)) return;
+    if (auth_handle(client, method, path, raw, body)) {
+        return;
+    }
 
     for (int i = 0; i < route_count; i++) {
         Route *r = &routes[i];
 
-        if (strcmp(r->method, method) != 0) continue;
+        if (strcmp(r->method, method) != 0) {
+            continue;
+        }
 
         if (r->is_wildcard) {
             const char *wildcard = strchr(r->path, '*');

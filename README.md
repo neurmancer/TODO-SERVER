@@ -44,6 +44,7 @@ The server stuff lives in `Server/` now. Making room for the client without
 turning the repo root into another fucking junk drawer.
 
 ```text
+Makefile
 README.md
 LICENSE.md
 THIRD_PARTY_LICENSES.md
@@ -67,7 +68,8 @@ cd Server
 ```
 
 Or update the daemon straight from the repo root with `./Server/build.sh update`.
-For a plain compile from the root, use `make -C Server`.
+From the repo root, use `make` to build or `make clean` to remove the server
+binary and object files. `make run` and `make rebuild` work from the root too.
 The existing web frontend stays with the server for now. Runtime data in
 `$HOME/.server` and the installed daemon/tunnel don't move with the source files.
 

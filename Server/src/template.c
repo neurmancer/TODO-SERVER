@@ -10,10 +10,14 @@
 FILE *render_template_file(const char *filename, TemplateVar *vars,
                            size_t var_count, size_t *byte_count)
 {
-    if (!byte_count) return(NULL);
+    if (!byte_count) {
+        return(NULL);
+    }
     *byte_count = 0;
     char *page = render_template(filename, vars, var_count);
-    if (!page) return(NULL);
+    if (!page) {
+        return(NULL);
+    }
 
     // tmpfile() gives each response its own file and removes it on fclose().
 
@@ -56,7 +60,9 @@ FILE *render_template_file(const char *filename, TemplateVar *vars,
 
 static char *read_file(const char *filename) {
     FILE *f = fopen(filename, "rb");
-    if (!f) return(NULL);
+    if (!f) {
+        return(NULL);
+    }
 
     fseek(f, 0, SEEK_END);
     long size = ftell(f);
@@ -90,7 +96,9 @@ static const char *find_var(TemplateVar *vars, size_t count, const char *key, si
 
 /* Helper: skip whitespace */
 static const char *skip_ws(const char *p) {
-    while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') p++;
+    while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+        p++;
+    }
     return(p);
 }
 
@@ -113,7 +121,9 @@ char *render_template(const char *filename, TemplateVar *vars, size_t var_count)
         /* ========== {{ variable }} ========== */
         if (p[0] == '{' && p[1] == '{') {
             char *end = strstr(p + 2, "}}");
-            if (!end) break;
+            if (!end) {
+                break;
+            }
 
             const char *key_start = skip_ws(p + 2);
             size_t key_len = end - key_start;
@@ -144,7 +154,9 @@ char *render_template(const char *filename, TemplateVar *vars, size_t var_count)
         /* ========== [[ condition ]] / [[ else ]] / [[ endif ]] ========== */
         if (p[0] == '[' && p[1] == '[') {
             char *end = strstr(p + 2, "]]");
-            if (!end) break;
+            if (!end) {
+                break;
+            }
 
             const char *tag_start = skip_ws(p + 2);
             size_t tag_len = end - tag_start;
@@ -178,8 +190,9 @@ char *render_template(const char *filename, TemplateVar *vars, size_t var_count)
 
                     const char *inner = skip_ws(scan + 2);
                     size_t inner_len = tag_end - inner;
-                    while (inner_len > 0 && (inner[inner_len-1] == ' ' || inner[inner_len-1] == '\t'))
+                    while (inner_len > 0 && (inner[inner_len-1] == ' ' || inner[inner_len-1] == '\t')) {
                         inner_len--;
+                    }
 
                     if (inner_len == 5 && strncmp(inner, "endif", 5) == 0) {
                         depth--;
@@ -233,11 +246,15 @@ char *render_template(const char *filename, TemplateVar *vars, size_t var_count)
                 while (*bp) {
                     if (bp[0] == '{' && bp[1] == '{') {
                         char *bend = strstr(bp + 2, "}}");
-                        if (!bend) break;
+                        if (!bend) {
+                            break;
+                        }
 
                         const char *kstart = skip_ws(bp + 2);
                         size_t klen = bend - kstart;
-                        while (klen > 0 && (kstart[klen-1] == ' ' || kstart[klen-1] == '\t')) klen--;
+                        while (klen > 0 && (kstart[klen-1] == ' ' || kstart[klen-1] == '\t')) {
+                            klen--;
+                        }
 
                         const char *val = find_var(vars, var_count, kstart, klen);
                         size_t vlen = strlen(val);

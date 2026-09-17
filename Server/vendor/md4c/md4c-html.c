@@ -94,13 +94,16 @@ render_html_escaped(MD_HTML* r, const MD_CHAR* data, MD_SIZE size)
     while(1) {
         /* Optimization: Use some loop unrolling. */
         while(off + 3 < size  &&  !NEED_HTML_ESC(data[off+0])  &&  !NEED_HTML_ESC(data[off+1])
-                              &&  !NEED_HTML_ESC(data[off+2])  &&  !NEED_HTML_ESC(data[off+3]))
+                              &&  !NEED_HTML_ESC(data[off+2])  &&  !NEED_HTML_ESC(data[off+3])) {
             off += 4;
-        while(off < size  &&  !NEED_HTML_ESC(data[off]))
+        }
+        while(off < size  &&  !NEED_HTML_ESC(data[off])) {
             off++;
+        }
 
-        if(off > beg)
+        if(off > beg) {
             render_verbatim(r, data + beg, off - beg);
+        }
 
         if(off < size) {
             switch(data[off]) {
@@ -128,10 +131,12 @@ render_url_escaped(MD_HTML* r, const MD_CHAR* data, MD_SIZE size)
     #define NEED_URL_ESC(ch)    (r->escape_map[(unsigned char)(ch)] & NEED_URL_ESC_FLAG)
 
     while(1) {
-        while(off < size  &&  !NEED_URL_ESC(data[off]))
+        while(off < size  &&  !NEED_URL_ESC(data[off])) {
             off++;
-        if(off > beg)
+        }
+        if(off > beg) {
             render_verbatim(r, data + beg, off - beg);
+        }
 
         if(off < size) {
             char hex[3];
@@ -157,12 +162,14 @@ render_url_escaped(MD_HTML* r, const MD_CHAR* data, MD_SIZE size)
 static unsigned
 hex_val(char ch)
 {
-    if('0' <= ch && ch <= '9')
+    if('0' <= ch && ch <= '9') {
         return(ch - '0');
-    if('A' <= ch && ch <= 'Z')
+    }
+    if('A' <= ch && ch <= 'Z') {
         return(ch - 'A' + 10);
-    else
+    } else {
         return(ch - 'a' + 10);
+    }
 }
 
 static void
@@ -194,10 +201,11 @@ render_utf8_codepoint(MD_HTML* r, unsigned codepoint,
         utf8[3] = 0x80 + ((codepoint >>  0) & 0x3f);
     }
 
-    if(0 < codepoint  &&  codepoint <= 0x10ffff)
+    if(0 < codepoint  &&  codepoint <= 0x10ffff) {
         fn_append(r, (char*)utf8, (MD_SIZE)n);
-    else
+    } else {
         fn_append(r, utf8_replacement_char, 3);
+    }
 }
 
 /* Translate entity to its UTF-8 equivalent, or output the verbatim one
@@ -218,13 +226,15 @@ render_entity(MD_HTML* r, const MD_CHAR* text, MD_SIZE size,
         if(text[2] == 'x' || text[2] == 'X') {
             /* Hexadecimal entity (e.g. "&#x1234abcd;")). */
             MD_SIZE i;
-            for(i = 3; i < size-1; i++)
+            for(i = 3; i < size-1; i++) {
                 codepoint = 16 * codepoint + hex_val(text[i]);
+            }
         } else {
             /* Decimal entity (e.g. "&1234;") */
             MD_SIZE i;
-            for(i = 2; i < size-1; i++)
+            for(i = 2; i < size-1; i++) {
                 codepoint = 10 * codepoint + (text[i] - '0');
+            }
         }
 
         render_utf8_codepoint(r, codepoint, fn_append);
@@ -236,8 +246,9 @@ render_entity(MD_HTML* r, const MD_CHAR* text, MD_SIZE size,
         ent = entity_lookup(text, size);
         if(ent != NULL) {
             render_utf8_codepoint(r, ent->codepoints[0], fn_append);
-            if(ent->codepoints[1])
+            if(ent->codepoints[1]) {
                 render_utf8_codepoint(r, ent->codepoints[1], fn_append);
+            }
             return;
         }
     }
@@ -286,10 +297,14 @@ render_open_li_block(MD_HTML* r, const MD_BLOCK_LI_DETAIL* det)
     if(det->is_task) {
         RENDER_VERBATIM(r, "<li class=\"task-list-item\">"
                           "<input type=\"checkbox\" class=\"task-list-item-checkbox\" disabled");
-        if(r->flags & MD_HTML_FLAG_XHTML) RENDER_VERBATIM(r, "=\"true\"");
+        if(r->flags & MD_HTML_FLAG_XHTML) {
+            RENDER_VERBATIM(r, "=\"true\"");
+        }
         if(det->task_mark == 'x' || det->task_mark == 'X') {
             RENDER_VERBATIM(r, " checked");
-            if(r->flags & MD_HTML_FLAG_XHTML) RENDER_VERBATIM(r, "=\"true\"");
+            if(r->flags & MD_HTML_FLAG_XHTML) {
+                RENDER_VERBATIM(r, "=\"true\"");
+            }
         }
         RENDER_VERBATIM(r, (r->flags & MD_HTML_FLAG_XHTML) ? " />" : ">");
     } else {
@@ -453,10 +468,12 @@ enter_span_callback(MD_SPANTYPE type, void* detail, void* userdata)
      * CommonMark specification declares this a recommended practice for HTML
      * output.
      */
-    if(type == MD_SPAN_IMG)
+    if(type == MD_SPAN_IMG) {
         r->image_nesting_level++;
-    if(inside_img)
+    }
+    if(inside_img) {
         return(0);
+    }
 
     switch(type) {
         case MD_SPAN_EM:                RENDER_VERBATIM(r, "<em>"); break;
@@ -479,10 +496,12 @@ leave_span_callback(MD_SPANTYPE type, void* detail, void* userdata)
 {
     MD_HTML* r = (MD_HTML*) userdata;
 
-    if(type == MD_SPAN_IMG)
+    if(type == MD_SPAN_IMG) {
         r->image_nesting_level--;
-    if(r->image_nesting_level > 0)
+    }
+    if(r->image_nesting_level > 0) {
         return(0);
+    }
 
     switch(type) {
         case MD_SPAN_EM:                RENDER_VERBATIM(r, "</em>"); break;
@@ -524,8 +543,9 @@ static void
 debug_log_callback(const char* msg, void* userdata)
 {
     MD_HTML* r = (MD_HTML*) userdata;
-    if(r->flags & MD_HTML_FLAG_DEBUG)
+    if(r->flags & MD_HTML_FLAG_DEBUG) {
         fprintf(stderr, "MD4C: %s\n", msg);
+    }
 }
 
 int
@@ -552,11 +572,13 @@ md_html(const MD_CHAR* input, MD_SIZE input_size,
     for(i = 0; i < 256; i++) {
         unsigned char ch = (unsigned char) i;
 
-        if(strchr("\"&<>", ch) != NULL)
+        if(strchr("\"&<>", ch) != NULL) {
             render.escape_map[i] |= NEED_HTML_ESC_FLAG;
+        }
 
-        if(!ISALNUM(ch)  &&  strchr("~-_.+!*(),%#@?=;:/,+$", ch) == NULL)
+        if(!ISALNUM(ch)  &&  strchr("~-_.+!*(),%#@?=;:/,+$", ch) == NULL) {
             render.escape_map[i] |= NEED_URL_ESC_FLAG;
+        }
     }
 
     /* Consider skipping UTF-8 byte order mark (BOM). */

@@ -40,36 +40,48 @@ static int redirect_plain_http(int socket)
 {
     unsigned char first;
     ssize_t count = recv(socket, &first, 1, MSG_PEEK);
-    if (count <= 0) return -1;
-    if (first != 'G' && first != 'H') return 0;
+    if (count <= 0) {
+        return(-1);
+    }
+    if (first != 'G' && first != 'H') {
+        return(0);
+    }
 
     char headers[4096];
     size_t used = 0;
     while (used < sizeof(headers) - 1) {
         count = recv(socket, headers + used, 1, 0);
-        if (count != 1) return -1;
+        if (count != 1) {
+            return(-1);
+        }
         used++;
         headers[used] = '\0';
-        if (used >= 4 && memcmp(headers + used - 4, "\r\n\r\n", 4) == 0)
+        if (used >= 4 && memcmp(headers + used - 4, "\r\n\r\n", 4) == 0) {
             break;
+        }
     }
     if (used < 4 || memcmp(headers + used - 4, "\r\n\r\n", 4) != 0 ||
-        (strncmp(headers, "GET ", 4) != 0 && strncmp(headers, "HEAD ", 5) != 0))
-        return -1;
+        (strncmp(headers, "GET ", 4) != 0 && strncmp(headers, "HEAD ", 5) != 0)) {
+        return(-1);
+    }
 
     char response[256];
     int length = snprintf(response, sizeof(response),
         "HTTP/1.1 308 Permanent Redirect\r\n"
         "Location: https://localhost:%d/\r\n"
         "Content-Length: 0\r\nConnection: close\r\n\r\n", PORT);
-    if (length < 0 || (size_t)length >= sizeof(response)) return -1;
+    if (length < 0 || (size_t)length >= sizeof(response)) {
+        return(-1);
+    }
     size_t sent = 0;
     while (sent < (size_t)length) {
         count = send(socket, response + sent, (size_t)length - sent, 0);
-        if (count <= 0) return -1;
+        if (count <= 0) {
+            return(-1);
+        }
         sent += (size_t)count;
     }
-    return 1;
+    return(1);
 }
 
 int main(void)
@@ -77,7 +89,7 @@ int main(void)
     setvbuf(stdout, NULL, _IONBF, 0);
     if (auth_init() != 0) {
         fprintf(stderr, "Invalid or unreadable auth credentials; refusing to start.\n");
-        return EXIT_FAILURE;
+        return(EXIT_FAILURE);
     }
 
     int server_sock = -1;
@@ -114,7 +126,9 @@ int main(void)
         goto rome;
     }
     context = tls_context();
-    if (!context) goto rome;
+    if (!context) {
+        goto rome;
+    }
 
     int opt = 1;
 
@@ -211,8 +225,12 @@ int main(void)
 rome:
     tls_close(&client);
     SSL_CTX_free(context);
-    if (client_sock != -1) close(client_sock);
-    if (server_sock != -1) close(server_sock);
+    if (client_sock != -1) {
+        close(client_sock);
+    }
+    if (server_sock != -1) {
+        close(server_sock);
+    }
     sqlite3_close(db);
     return(exit_status);
 }
