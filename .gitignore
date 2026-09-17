@@ -3,6 +3,7 @@ referance/
 todo.db
 *.o
 /server
+/Server/server
 *.pem
 
 # Private deployment files (runtime configuration lives outside this repository).
@@ -11,4 +12,6 @@ todo.db
 !.env.example
 *.key
 /Caddyfile
+/Server/Caddyfile
 /.server/
+/Server/.server/

@@ -163,7 +163,7 @@ if [[ $ACTION == local ]]; then
     echo "Local build ready: ${SCRIPT_DIR}/${BINARY_NAME}"
     echo "Runtime files: ${SERVER_PATH}"
     echo "Site: https://localhost:8080 (self-signed certificate)"
-    echo "Run it with: ./${BINARY_NAME}"
+    printf 'Run it with: %q\n' "${SCRIPT_DIR}/${BINARY_NAME}"
     exit 0
 fi
 

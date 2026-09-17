@@ -16,7 +16,8 @@ MIT LICENSE
 Copyright:
 Copyright (c) 2016-2024 Martin Mitas
 
-The original license text is preserved with the vendored MD4C source files.
+The original license text is preserved with the vendored MD4C source files in
+[Server/vendor/md4c/LICENSE.md](Server/vendor/md4c/LICENSE.md).
 
 ---
 

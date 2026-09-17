@@ -20,6 +20,7 @@ and now I need a separate repo to keep developing it
 > and yeah I'll keep a bullet point in every repo just pointing the table of contents
 
 - [ToC](#table-of-contents)
+- [Where the shit lives](#project-layout)
 - [Disclaimer](#disclaimer)
 - [Shit I've Built](#features)
 - [Bragging](#other-stuff)
@@ -36,6 +37,39 @@ and now I need a separate repo to keep developing it
 - [Legal Shit](#legal-stuff-and-licensing)
 
 ---
+
+### Project layout
+
+The server stuff lives in `Server/` now. Making room for the client without
+turning the repo root into another fucking junk drawer.
+
+```text
+README.md
+LICENSE.md
+THIRD_PARTY_LICENSES.md
+Server/
+    Makefile
+    build.sh
+    deploy.sh
+    generate-cert.sh
+    setup-auth.py
+    serverThingy.c
+    frontend/
+    src/
+    scripts/
+    vendor/
+```
+
+**Run the commands below from inside `Server/`:**
+
+```bash
+cd Server
+```
+
+Or update the daemon straight from the repo root with `./Server/build.sh update`.
+For a plain compile from the root, use `make -C Server`.
+The existing web frontend stays with the server for now. Runtime data in
+`$HOME/.server` and the installed daemon/tunnel don't move with the source files.
 
 ### Disclaimer
 
