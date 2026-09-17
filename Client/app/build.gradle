@@ -1,0 +1,44 @@
+plugins {
+    id 'com.android.application'
+}
+
+def serverConfig = new Properties()
+def serverFile = rootProject.file('server.properties')
+if (serverFile.exists()) {
+    serverFile.withInputStream { serverConfig.load(it) }
+}
+def serverUrl = providers.gradleProperty('serverUrl')
+        .orElse(serverConfig.getProperty('serverUrl', '')).get().trim()
+def address
+try {
+    address = new URI(serverUrl)
+} catch (URISyntaxException ignored) {
+    throw new GradleException('serverUrl must be a valid HTTPS URL.')
+}
+if (address.scheme != 'https' || !address.host || address.rawUserInfo != null ||
+        address.rawQuery != null || address.rawFragment != null ||
+        !(address.rawPath in ['', '/']) || address.port < -1 || address.port == 0 ||
+        address.port > 65535) {
+    throw new GradleException('Set serverUrl to your HTTPS server origin in Client/server.properties (see server.properties.example).')
+}
+
+android {
+    namespace 'com.todoserver.client'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.todoserver.client'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '1.0'
+        buildConfigField 'String', 'SERVER_URL', groovy.json.JsonOutput.toJson(serverUrl)
+    }
+    buildFeatures {
+        buildConfig true
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

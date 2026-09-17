@@ -21,5 +21,13 @@ The original license text is preserved with the vendored MD4C source files in
 
 ---
 
+## Gradle Wrapper
+
+The scripts and wrapper JAR in `Client/` come from Gradle 8.13.0.
+
+Upstream: [Gradle](https://github.com/gradle/gradle/tree/v8.13.0).
+License: Apache License 2.0. The wrapper JAR's license text is preserved in
+[Client/gradle/LICENSE](Client/gradle/LICENSE).
+
 Third-party components remain subject to their original licenses and
 copyright notices.

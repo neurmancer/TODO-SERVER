@@ -48,6 +48,7 @@ Makefile
 README.md
 LICENSE.md
 THIRD_PARTY_LICENSES.md
+Client/                 # Android WebView APK; build instructions in Client/README.md
 Server/
     Makefile
     build.sh
@@ -72,6 +73,9 @@ From the repo root, use `make` to build or `make clean` to remove the server
 binary and object files. `make run` and `make rebuild` work from the root too.
 The existing web frontend stays with the server for now. Runtime data in
 `$HOME/.server` and the installed daemon/tunnel don't move with the source files.
+
+The Android app loads that live frontend in a WebView. See
+[Client/README.md](Client/README.md) for the server URL configuration and APK build.
 
 ### Disclaimer
 

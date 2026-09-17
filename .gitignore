@@ -6,7 +6,7 @@ todo.db
 /Server/server
 *.pem
 
-# Private deployment files (runtime configuration lives outside this repository).
+# I see dead people...
 .env
 .env.*
 !.env.example
