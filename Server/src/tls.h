@@ -7,6 +7,7 @@
 typedef struct {
     SSL *ssl;
     int failed;
+    long long user_id;
 } TLSClient;
 
 SSL_CTX *tls_context(void);

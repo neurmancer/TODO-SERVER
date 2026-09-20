@@ -10,13 +10,16 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sqlite3.h>
+#include <stdlib.h>
 
 #define SESSION_COUNT 64
 #define SESSION_SECONDS 28800
 static int enabled;
 static char username[65];
 static unsigned char salt[32], password_hash[32];
-static struct { char token[65]; time_t expires; } sessions[SESSION_COUNT];
+static struct { char token[65]; time_t expires; sqlite3_int64 user_id; } sessions[SESSION_COUNT];
+static sqlite3 *users_db;
 static unsigned failures;
 static time_t blocked_until;
 
@@ -56,6 +59,29 @@ int auth_init(void)
         return(-1);
     }
     
+    char users_path[PATH_MAX];
+    struct stat users_info;
+    if (get_server_path(users_path, sizeof(users_path), "auth/users.db") != OK) { return(-1); }
+    if (lstat(users_path, &users_info) == 0) {
+        if (!S_ISREG(users_info.st_mode) || (users_info.st_mode & 077) || users_info.st_uid != geteuid()) { return(-1); }
+        if (sqlite3_open_v2(users_path, &users_db, SQLITE_OPEN_READONLY, NULL) != SQLITE_OK) { return(-1); }
+        sqlite3_stmt *stmt = NULL;
+        if (sqlite3_prepare_v2(users_db, "SELECT id, username, salt, password_hash FROM users", -1, &stmt, NULL) != SQLITE_OK) { return(-1); }
+        int rc, count = 0;
+        while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+            if (sqlite3_column_int64(stmt, 0) <= 0 || !sqlite3_column_text(stmt, 1) ||
+                sqlite3_column_bytes(stmt, 2) != 32 || sqlite3_column_bytes(stmt, 3) != 32) {
+                sqlite3_finalize(stmt); return(-1);
+            }
+            count++;
+        }
+        sqlite3_finalize(stmt);
+        if (rc != SQLITE_DONE || !count) { return(-1); }
+        enabled = 1;
+        return(0);
+    }
+    if (errno != ENOENT) { return(-1); }
+
     struct stat info;
     
     if (lstat(path, &info) != 0) {
@@ -253,6 +279,7 @@ static int field(const char *body, const char *name, char *out, size_t capacity)
 
 int auth_handle(TLSClient *client, const char *method, const char *path, const char *raw, const char *body)
 {
+    client->user_id = 1; /* The original/local account owns legacy todos. */
     int get = !strcmp(method, "GET"), post = !strcmp(method, "POST");
     
     if (get && !strcmp(path, "/auth/status")) {
@@ -309,15 +336,36 @@ int auth_handle(TLSClient *client, const char *method, const char *path, const c
         char user[65] = {0}, password[1025] = {0}; unsigned char derived[32];
     
         int valid = field(body, "username", user, sizeof(user)) && field(body, "password", password, sizeof(password));
-        int hashed = PKCS5_PBKDF2_HMAC(password, (int)strlen(password), salt, 32, 600000, EVP_sha256(), 32, derived);
+        sqlite3_int64 user_id = 1;
+        unsigned char login_salt[32], login_hash[32];
+        memcpy(login_salt, salt, 32);
+        memcpy(login_hash, password_hash, 32);
+        int found = !strcmp(user, username);
+        if (users_db) {
+            sqlite3_stmt *stmt = NULL;
+            found = 0;
+            if (sqlite3_prepare_v2(users_db, "SELECT id, salt, password_hash FROM users WHERE username = ?", -1, &stmt, NULL) != SQLITE_OK) {
+                OPENSSL_cleanse(password, sizeof(password));
+                reply(client, 503, "application/json", "", "{\"error\":\"User database unavailable.\"}"); return(1);
+            }
+            sqlite3_bind_text(stmt, 1, user, -1, SQLITE_TRANSIENT);
+            if (sqlite3_step(stmt) == SQLITE_ROW && sqlite3_column_bytes(stmt, 1) == 32 && sqlite3_column_bytes(stmt, 2) == 32) {
+                user_id = sqlite3_column_int64(stmt, 0);
+                memcpy(login_salt, sqlite3_column_blob(stmt, 1), 32);
+                memcpy(login_hash, sqlite3_column_blob(stmt, 2), 32);
+                found = user_id > 0;
+            }
+            sqlite3_finalize(stmt);
+        }
+        int hashed = PKCS5_PBKDF2_HMAC(password, (int)strlen(password), login_salt, 32, 600000, EVP_sha256(), 32, derived);
     
         OPENSSL_cleanse(password, sizeof(password));
     
-        int matches = hashed == 1 && CRYPTO_memcmp(derived, password_hash, 32) == 0;
+        int matches = hashed == 1 && CRYPTO_memcmp(derived, login_hash, 32) == 0;
     
         OPENSSL_cleanse(derived, sizeof(derived));
     
-        if (!valid || !matches || strcmp(user, username)) {
+        if (!valid || !matches || !found) {
             if (++failures >= 5) { blocked_until = time(NULL) + 60; failures = 0; }
             reply(client, 401, "application/json", "", "{\"error\":\"Username or password didn't match. Try again.\"}"); return(1);
         }
@@ -346,6 +394,7 @@ int auth_handle(TLSClient *client, const char *method, const char *path, const c
             sprintf(sessions[slot].token + i * 2, "%02x", random[i]);
         }
     
+        sessions[slot].user_id = user_id;
         sessions[slot].expires = time(NULL) + SESSION_SECONDS;
     
         char cookie[256];
@@ -365,5 +414,6 @@ int auth_handle(TLSClient *client, const char *method, const char *path, const c
         reply(client, get ? 303 : 401, "application/json", get ? "Location: /login\r\n" : "", "{\"error\":\"Please sign in.\"}"); return(1);
     }
     
+    client->user_id = sessions[session].user_id;
     return(0);
 }

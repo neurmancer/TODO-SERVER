@@ -41,12 +41,26 @@ sqlite3 *set_db(void)
         return(NULL);
     }
 
+    /* Old single-user data belongs to account 1, including local-mode data. */
+    sqlite3_stmt *columns = NULL;
+    int has_owner = 0;
+    if (sqlite3_prepare_v2(database, "PRAGMA table_info(TODOS)", -1, &columns, NULL) != SQLITE_OK) {
+        sqlite3_close(database); return(NULL);
+    }
+    while (sqlite3_step(columns) == SQLITE_ROW) {
+        if (!strcmp((const char *)sqlite3_column_text(columns, 1), "UserId")) { has_owner = 1; }
+    }
+    sqlite3_finalize(columns);
+    if ((!has_owner && sqlite3_exec(database, "ALTER TABLE TODOS ADD COLUMN UserId INTEGER NOT NULL DEFAULT 1", NULL, NULL, NULL) != SQLITE_OK) ||
+        sqlite3_exec(database, "CREATE INDEX IF NOT EXISTS todos_owner ON TODOS(UserId, CreatedAt)", NULL, NULL, NULL) != SQLITE_OK) {
+        sqlite3_close(database); return(NULL);
+    }
     return(database);
 }
 
-enum STATUS add_todo(sqlite3 *db, const char *title, const char *content)
+enum STATUS add_todo(sqlite3 *db, sqlite3_int64 user_id, const char *title, const char *content)
 {
-    const char *sql = "INSERT INTO TODOS (Title, Content, CreatedAt) VALUES (?, ?, ?);";
+    const char *sql = "INSERT INTO TODOS (Title, Content, CreatedAt, UserId) VALUES (?, ?, ?, ?);";
     sqlite3_stmt *stmt = NULL;
 
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -58,6 +72,7 @@ enum STATUS add_todo(sqlite3 *db, const char *title, const char *content)
     sqlite3_bind_text(stmt, 1, title, -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 2, content, -1, SQLITE_TRANSIENT);
     sqlite3_bind_int64(stmt, 3, (sqlite3_int64)now);
+    sqlite3_bind_int64(stmt, 4, user_id);
 
     int rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
@@ -69,9 +84,9 @@ enum STATUS add_todo(sqlite3 *db, const char *title, const char *content)
     return(OK);
 }
 
-enum STATUS delete_todo(sqlite3 *db, int id)
+enum STATUS delete_todo(sqlite3 *db, sqlite3_int64 user_id, int id)
 {
-    const char *sql = "DELETE FROM TODOS WHERE ID = ?;";
+    const char *sql = "DELETE FROM TODOS WHERE ID = ? AND UserId = ?;";
     sqlite3_stmt *stmt = NULL;
 
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -79,15 +94,16 @@ enum STATUS delete_todo(sqlite3 *db, int id)
     }
 
     sqlite3_bind_int(stmt, 1, id);
+    sqlite3_bind_int64(stmt, 2, user_id);
     int rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
 
-    return((rc == SQLITE_DONE) ? OK : U_FUCKED);
+    return(rc != SQLITE_DONE ? U_FUCKED : sqlite3_changes(db) ? OK : TODO_NOT_FOUND);
 }
 
-enum STATUS update_todo(sqlite3 *db, int id, const char *content)
+enum STATUS update_todo(sqlite3 *db, sqlite3_int64 user_id, int id, const char *content)
 {
-    const char *sql = "UPDATE TODOS SET Content = ? WHERE ID = ?;";
+    const char *sql = "UPDATE TODOS SET Content = ? WHERE ID = ? AND UserId = ?;";
     sqlite3_stmt *stmt = NULL;
 
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK){
@@ -96,27 +112,29 @@ enum STATUS update_todo(sqlite3 *db, int id, const char *content)
 
     sqlite3_bind_text(stmt, 1, content, -1, SQLITE_TRANSIENT);
     sqlite3_bind_int(stmt, 2, id);
+    sqlite3_bind_int64(stmt, 3, user_id);
 
     int rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
 
-    return((rc == SQLITE_DONE) ? OK : U_FUCKED);
+    return(rc != SQLITE_DONE ? U_FUCKED : sqlite3_changes(db) ? OK : TODO_NOT_FOUND);
 }
 
-enum STATUS set_todo_completed(sqlite3 *db, int id, int completed)
+enum STATUS set_todo_completed(sqlite3 *db, sqlite3_int64 user_id, int id, int completed)
 {
     if (!db || id <= 0 || (completed != 0 && completed != 1)) {
         return(U_FUCKED);
     }
 
     sqlite3_stmt *stmt = NULL;
-    if (sqlite3_prepare_v2(db, "UPDATE TODOS SET Completed = ? WHERE ID = ?;",
+    if (sqlite3_prepare_v2(db, "UPDATE TODOS SET Completed = ? WHERE ID = ? AND UserId = ?;",
                            -1, &stmt, NULL) != SQLITE_OK) {
         return(U_FUCKED);
     }
 
     sqlite3_bind_int(stmt, 1, completed);
     sqlite3_bind_int(stmt, 2, id);
+    sqlite3_bind_int64(stmt, 3, user_id);
     int rc = sqlite3_step(stmt);
     int changed = sqlite3_changes(db);
     sqlite3_finalize(stmt);
@@ -127,9 +145,9 @@ enum STATUS set_todo_completed(sqlite3 *db, int id, int completed)
     return(changed ? OK : TODO_NOT_FOUND);
 }
 
-enum STATUS get_todo(sqlite3 *db, int id, struct todo_data *out)
+enum STATUS get_todo(sqlite3 *db, sqlite3_int64 user_id, int id, struct todo_data *out)
 {
-    const char *sql = "SELECT ID, Title, Content, Completed, CreatedAt FROM TODOS WHERE ID = ?;";
+    const char *sql = "SELECT ID, Title, Content, Completed, CreatedAt FROM TODOS WHERE ID = ? AND UserId = ?;";
     sqlite3_stmt *stmt = NULL;
 
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -137,6 +155,7 @@ enum STATUS get_todo(sqlite3 *db, int id, struct todo_data *out)
     }
 
     sqlite3_bind_int(stmt, 1, id);
+    sqlite3_bind_int64(stmt, 2, user_id);
 
     if (sqlite3_step(stmt) == SQLITE_ROW) {
         out->id        = sqlite3_column_int(stmt, 0);
@@ -153,15 +172,16 @@ enum STATUS get_todo(sqlite3 *db, int id, struct todo_data *out)
 }
 
 
-enum STATUS foreach_todo(sqlite3 *db, todo_callback cb, void *userdata)
+enum STATUS foreach_todo(sqlite3 *db, sqlite3_int64 user_id, todo_callback cb, void *userdata)
 {
-    const char *sql = "SELECT ID, Title, Content, Completed, CreatedAt FROM TODOS ORDER BY CreatedAt DESC;";
+    const char *sql = "SELECT ID, Title, Content, Completed, CreatedAt FROM TODOS WHERE UserId = ? ORDER BY CreatedAt DESC;";
     sqlite3_stmt *stmt = NULL;
 
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
         return(U_FUCKED);
     }
 
+    sqlite3_bind_int64(stmt, 1, user_id);
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         struct todo_data t = {0};
         t.id         = sqlite3_column_int(stmt, 0);

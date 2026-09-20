@@ -339,7 +339,7 @@ void send_homepage(TLSClient *client, sqlite3 *db, const char *path, const char 
     
     struct todo_list list = {.stream = stream};
     
-    enum STATUS status = foreach_todo(db, append_todo_link, &list);
+    enum STATUS status = foreach_todo(db, client->user_id, append_todo_link, &list);
     
     if (!list.count && fprintf(stream, "<li>No todos yet.</li>") < 0) {
         list.failed = 1;
@@ -380,7 +380,7 @@ void send_todo_page(TLSClient *client, sqlite3 *db, const char *path, const char
 
     struct todo_data todo = {0};
     
-    if (get_todo(db, id, &todo) != OK) {
+    if (get_todo(db, client->user_id, id, &todo) != OK) {
         send_404(client, db, path, body);
         return;
     }
@@ -468,7 +468,7 @@ void handle_post(TLSClient *client, sqlite3 *db, const char *path, const char *b
 
     printf(">>> New shit dropped into the DB: %s\n", decoded);
 
-    if (add_todo(db, decoded, decoded) != OK) {
+    if (add_todo(db, client->user_id, decoded, decoded) != OK) {
         fprintf(stderr, "FUCK: add_todo failed\n");
         send_http_response(client, 500, "text/plain", "Failed to create todo");
         return;
@@ -552,7 +552,7 @@ void handle_complete(TLSClient *client, sqlite3 *db, const char *path, const cha
 
     int id = (int)parsed_id;
 
-    enum STATUS status = set_todo_completed(db, id, completed[0] == '1');
+    enum STATUS status = set_todo_completed(db, client->user_id, id, completed[0] == '1');
 
     if (status == TODO_NOT_FOUND) {
         send_404(client, db, path, body);
@@ -600,7 +600,9 @@ void handle_update(TLSClient *client, sqlite3 *db, const char *path, const char 
 
     int id = (int)parsed_id;
 
-    if (update_todo(db, id, content) != OK) {
+    enum STATUS status = update_todo(db, client->user_id, id, content);
+    if (status == TODO_NOT_FOUND) { send_404(client, db, path, body); return; }
+    if (status != OK) {
         fprintf(stderr, "Update failed for id %d\n", id);
         send_http_response(client, 500, "text/plain", "Update failed");
         return;
@@ -660,7 +662,9 @@ void handle_delete(TLSClient *client, sqlite3 *db, const char *path, const char 
         return;
     }
 
-    if (delete_todo(db, id) == OK) {
+    enum STATUS status = delete_todo(db, client->user_id, id);
+    if (status == TODO_NOT_FOUND) { send_404(client, db, path, body); return; }
+    if (status == OK) {
         printf("Deleted todo #%d – gone forever, motherfucker\n", id);
     }
 

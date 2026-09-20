@@ -58,17 +58,39 @@ happens before stopping the running service. Changed the frontend? Run it too.
 
 ## Login shit
 
+Each account has its own todos. Users cannot view or change another account's
+todos, even with a direct todo URL or ID. The music library remains shared.
+
 ```bash
-python3 setup-auth.py --user todo
+python3 setup-auth.py --user yourname # First account, or reset this user's password
+# Purely added just 'cuz my friend wannted to use this too lol
+python3 setup-auth.py --user second  # Add another account; prompts for its password
+python3 setup-auth.py --list
+python3 setup-auth.py --user second --rename newname # Keeps password and todos
 ./build.sh update
 ```
 
-Open `/login`. For a manually started server, restart it instead of updating
-the daemon. Same command changes the password; restart afterward.
-Without configured credentials, local access has no login.
+For a local build, add `--runtime ../.server` to each setup command (or set
+`TODO_SERVER_PATH`). The default runtime is `$HOME/.server`. Restart a manually
+started backend instead of updating the daemon.
 
-Passwords need 12+ characters and are stored as well-seasoned(salted) hashes. Sessions last up to eight hours; logout or a server restart clears them. Five failed attempts
-pause logins for a minute. **Set up login before exposing the thing.**
+Accounts are stored in `auth/users.db` with unique usernames and salted
+PBKDF2-SHA256 password hashes. Reusing a username resets only that account's
+password. Restart after account changes to invalidate existing sessions.
+Usernames are case-sensitive and accept 1–64 letters, digits, underscores, or
+hyphens. Passwords need 12+ characters.
+
+Existing single-user credentials are imported automatically by `setup-auth.py`
+before adding another account. The original account keeps ID 1 and all existing
+todos. On a server without previous credentials, the first account owns existing
+local todos. Renaming an account preserves its ID and todos. Keep both runtime
+databases (`auth/users.db` and `db/todo.db`) together when backing up or restoring.
+The old credential file is ignored once the user database exists.
+
+Open `/login` to sign in. Sessions last up to eight hours; logout clears that
+session and a server restart clears all sessions. Five failed attempts pause
+logins for a minute. Without either user database or legacy credentials, local
+access has no login. **Set up login before exposing the thing.**
 
 ## Put it on the fucking internet
 
@@ -219,7 +241,7 @@ Open two clients and confirm their controls do not affect each other.
 
 No databases, keys, credentials, deployment configs, or logs in commits.
 Caddy config lives in `/etc/todo-caddy/`, its state in `/var/lib/todo-caddy/`,
-and app credentials in `$HOME/.server/auth/credentials`. Cloudflare credentials
+and app accounts in `$HOME/.server/auth/users.db` (legacy: `auth/credentials`). Cloudflare credentials
 stay local too. Your domain can still appear in shell history and logs.
 
 ## Check it / legal shit

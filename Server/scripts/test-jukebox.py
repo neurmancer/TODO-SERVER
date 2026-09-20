@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """Exercise authenticated MP3 delivery and fork lifecycle on an isolated server."""
+import argparse
+import importlib.util
+import sqlite3
 import hashlib
 import http.client
 import json
@@ -26,6 +29,21 @@ with tempfile.TemporaryDirectory(prefix='todo-jukebox-test-') as tmp:
     credentials = runtime / 'auth/credentials'
     credentials.write_text(f'pbkdf2-sha256-600000\ntodo\n{salt.hex()}\n{digest.hex()}\n')
     credentials.chmod(0o600)
+    spec = importlib.util.spec_from_file_location('setup_auth', ROOT / 'setup-auth.py')
+    setup_auth = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(setup_auth)
+    args = argparse.Namespace(runtime=str(runtime), user='second', rename=None, list=False)
+    setup_auth.configure(args, 'second-test-password')
+    # Original credentials are imported before the second user is created.
+    with sqlite3.connect(runtime / 'auth/users.db') as users:
+        assert users.execute('SELECT id,username FROM users ORDER BY id').fetchall() == [(1, 'todo'), (2, 'second')]
+    args.rename = 'guest'
+    setup_auth.configure(args)
+    args.user, args.rename = 'guest', None
+    setup_auth.configure(args, 'guest-reset-password')
+    with sqlite3.connect(runtime / 'db/todo.db') as todos:
+        todos.execute('CREATE TABLE TODOS (ID INTEGER PRIMARY KEY AUTOINCREMENT, Title TEXT NOT NULL, Content TEXT NOT NULL, Completed INTEGER NOT NULL DEFAULT 0, CreatedAt INTEGER NOT NULL)')
+        todos.execute("INSERT INTO TODOS(Title,Content,CreatedAt) VALUES('original-private-title','original-private-body',1)")
     subprocess.run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1',
         '-subj', '/CN=localhost', '-keyout', str(runtime / 'tls/key.pem'),
         '-out', str(runtime / 'tls/cert.pem')], check=True, capture_output=True)
@@ -70,6 +88,35 @@ with tempfile.TemporaryDirectory(prefix='todo-jukebox-test-') as tmp:
                              b'username=todo&password=jukebox-test-password')
             assert result[0] == 200, result
             cookie = result[1]['Set-Cookie'].split(';')[0]
+            owner_cookie = cookie
+            assert b'original-private-title' in request('/')[2]
+            assert b'original-private-body' in request('/todos/1')[2]
+            result = request('/login', 'POST', body=b'username=guest&password=second-test-password')
+            assert result[0] == 401
+            result = request('/login', 'POST', body=b'username=guest&password=guest-reset-password', authenticated=False)
+            assert result[0] == 200, result
+            cookie = result[1]['Set-Cookie'].split(';')[0]
+            assert b'original-private-title' not in request('/')[2]
+            assert request('/todos/1')[0] == 404
+            for path, body in [('/update', b'id=1&content=stolen'), ('/complete', b'id=1&completed=1'), ('/delete', b'id=1')]:
+                assert request(path, 'POST', body=body)[0] == 404, path
+            assert request('/', 'POST', body=b'todo=guest-private-title')[0] == 303
+            assert b'guest-private-title' in request('/')[2]
+            assert request('/update', 'POST', body=b'id=2&content=guest-private-body')[0] == 303
+            assert request('/complete', 'POST', body=b'id=2&completed=1')[0] == 303
+            assert b'guest-private-body' in request('/todos/2')[2]
+            guest_cookie = cookie
+            cookie = owner_cookie
+            assert b'guest-private-title' not in request('/')[2]
+            assert request('/todos/2')[0] == 404
+            assert b'original-private-body' in request('/todos/1')[2]
+            with sqlite3.connect(runtime / 'db/todo.db') as todos:
+                assert todos.execute('SELECT UserId,Completed FROM TODOS ORDER BY ID').fetchall() == [(1, 0), (2, 1)]
+            cookie = guest_cookie
+            assert request('/delete', 'POST', body=b'id=2')[0] == 303
+            assert request('/logout', 'POST')[0] == 303
+            assert request('/')[0] == 303
+            cookie = owner_cookie
             assert json.loads(request('/jukebox/songs')[2]) == []
             payload = b'ID3' + bytes(range(256)) * 32
             name = 'A "quoted" café song.MP3'
