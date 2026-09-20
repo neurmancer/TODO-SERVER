@@ -2,6 +2,7 @@ tests/
 referance/
 todo.db
 *.o
+__pycache__/
 /server
 /Server/server
 *.pem

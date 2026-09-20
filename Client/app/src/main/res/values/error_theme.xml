@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Keep in sync with the palette in Server/frontend/style.css. -->
+    <color name="error_background">#0d1117</color>
+    <color name="error_surface">#161b22</color>
+    <color name="error_border">#30363d</color>
+    <color name="error_text">#58a6ff</color>
+    <color name="error_muted">#8b949e</color>
+    <color name="error_purple">#a850ff</color>
+    <color name="error_green">#39ff14</color>
+    <color name="error_button_surface">#1f1a2e</color>
+
+    <style name="ErrorText">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textColor">@color/error_text</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:lineSpacingMultiplier">1.3</item>
+    </style>
+</resources>

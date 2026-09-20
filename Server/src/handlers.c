@@ -263,36 +263,19 @@ void send_favicon(TLSClient *client, sqlite3 *db, const char *path, const char *
 {
     if (path && strcmp(path, "/favicon.png") == 0) {
         send_asset(client, db, path, body, ".png", "image/png");
-    } else if (path && strcmp(path, "/favicon.svg") == 0) {
+    } 
+    
+    else if (path && strcmp(path, "/favicon.svg") == 0) {
         send_asset(client, db, path, body, ".svg", "image/svg+xml");
-    } else if (path && strcmp(path, "/favicon.ico") == 0) {
+    } 
+    
+    else if (path && strcmp(path, "/favicon.ico") == 0) {
         send_asset(client, db, path, body, ".ico", "image/vnd.microsoft.icon");
-    } else {
+    } 
+    
+    else {
         send_404(client, db, path, body);
     }
-}
-
-//You thought this wasn't gonna have a jukebox? Nah you're trippin'
-//Selecting the songs rigorusly was harder than the whole fucking project lol
-//Direct HTTPS audio links; each one must play without signing in.
-static const char *const jukebox_songs[] = {
-    "8QG7CEuUqMc",  // Everytime we touch
-    "fDdbTsw0Vuk",  // I'm blue (rock version)  
-    NULL, /* you forget that you fucked. */
-};
-
-void send_jukebox_song(TLSClient *client, sqlite3 *db, const char *path, const char *body)
-{
-    (void)db; (void)path; (void)body;
-    unsigned int random;
-    sqlite3_randomness(sizeof(random), &random);
-    size_t count = sizeof(jukebox_songs) / sizeof(jukebox_songs[0]) - 1;
-    if (!count) {
-        send_http_response(client, 404, "text/plain; charset=utf-8", "No songs configured");
-        return;
-    }
-    send_http_response(client, 200, "text/plain; charset=utf-8",
-                       jukebox_songs[random % count]);
 }
 
 struct todo_list {
@@ -304,14 +287,16 @@ struct todo_list {
 static void append_todo_link(struct todo_data *todo, void *userdata)
 {
     struct todo_list *list = userdata;
-    if (list->failed) {
-        return;
-    }
+    
+    if (list->failed) { return; }
+    
     char *title = escape_html(todo->title);
+    
     if (!title) {
         list->failed = 1;
         return;
     }
+    
     if (fprintf(list->stream,
                 "<li class=\"todo-item\"><form class=\"todo-toggle\" action=\"/complete\" method=\"POST\">"
                 "<input type=\"hidden\" name=\"id\" value=\"%d\">"
@@ -326,7 +311,9 @@ static void append_todo_link(struct todo_data *todo, void *userdata)
                 todo->id, title) < 0) {
         list->failed = 1;
     }
+    
     free(title);
+    
     list->count++;
 }
 
@@ -340,26 +327,36 @@ void send_homepage(TLSClient *client, sqlite3 *db, const char *path, const char 
     }
 
     char *links = NULL;
+    
     size_t length = 0;
+    
     FILE *stream = open_memstream(&links, &length);
+    
     if (!stream) {
         send_http_response(client, 500, "text/plain", "Could not build todo list");
         return;
     }
+    
     struct todo_list list = {.stream = stream};
+    
     enum STATUS status = foreach_todo(db, append_todo_link, &list);
+    
     if (!list.count && fprintf(stream, "<li>No todos yet.</li>") < 0) {
         list.failed = 1;
     }
+    
     if (fclose(stream) != 0) {
         list.failed = 1;
     }
+    
     if (status != OK || list.failed) {
         free(links);
         send_http_response(client, 500, "text/plain", "Could not build todo list");
         return;
     }
+    
     TemplateVar vars[] = {{"todo_list", links}};
+    
     send_rendered_page(client, "frontend/index.html", vars, 1);
     free(links);
 }
@@ -375,26 +372,34 @@ void send_todo_page(TLSClient *client, sqlite3 *db, const char *path, const char
     }
 
     int id = 0;
+    
     if (sscanf(path, "/todos/%d", &id) != 1 || id <= 0) {
         send_404(client, db, path, body);
         return;
     }
 
     struct todo_data todo = {0};
+    
     if (get_todo(db, id, &todo) != OK) {
         send_404(client, db, path, body);
         return;
     }
 
+    
     char id_text[32], created_at[32];
+    
     snprintf(id_text, sizeof(id_text), "%d", todo.id);
     snprintf(created_at, sizeof(created_at), "%ld", todo.created_at);
+    
     char *title = escape_html(todo.title);
     char *content = escape_html(todo.content);
     char *content_html = render_markdown(todo.content);
+    
     if (!title || !content || !content_html) {
         send_http_response(client, 500, "text/plain", "Could not render todo");
-    } else {
+    } 
+    
+    else {
         TemplateVar vars[] = {
             {"id", id_text}, {"title", title}, {"content", content},
             {"content_html", content_html},
@@ -403,6 +408,7 @@ void send_todo_page(TLSClient *client, sqlite3 *db, const char *path, const char
         send_rendered_page(client, "frontend/template.html", vars,
                            sizeof(vars) / sizeof(vars[0]));
     }
+    
     free(title);
     free(content);
     free(content_html);
@@ -421,30 +427,38 @@ void handle_post(TLSClient *client, sqlite3 *db, const char *path, const char *b
     }
 
     char mutable_body[BUF_SIZE];
+    
     strncpy(mutable_body, body ? body : "", sizeof(mutable_body) - 1);
+    
     mutable_body[sizeof(mutable_body) - 1] = '\0';
 
     char *todo_begins = mutable_body;
+    
     while (todo_begins && strncmp(todo_begins, "todo=", 5) != 0) {
         todo_begins = strchr(todo_begins, '&');
-        if (todo_begins) {
-            todo_begins++;
-        }
+        if (todo_begins) { todo_begins++; }
     }
+
     if (!todo_begins) {
         send_http_response(client, 400, "text/plain", "Missing todo field");
         return;
     }
 
     todo_begins += 5;
+    
     char *todo_end = strpbrk(todo_begins, "&\r\n");
+    
     if (todo_end) {
         *todo_end = '\0';
     }
 
+    
     char decoded[BUF_SIZE];
+    
     strncpy(decoded, todo_begins, sizeof(decoded) - 1);
+    
     decoded[sizeof(decoded) - 1] = '\0';
+    
     url_decode(decoded);
 
     if (decoded[0] == '\0') {
@@ -464,20 +478,26 @@ void handle_post(TLSClient *client, sqlite3 *db, const char *path, const char *b
 }
 
 
-/* Read one form field, rejecting duplicates, truncation and encoded NULs. */
 static int form_field(const char *body, const char *name, char *out, size_t capacity)
 {
     size_t name_length = strlen(name);
     int found = 0;
     out[0] = '\0';
+
     for (const char *field = body ? body : ""; *field;) {
+
         const char *end = strchr(field, '&');
         size_t length = end ? (size_t)(end - field) : strlen(field);
+
         if (length > name_length && strncmp(field, name, name_length) == 0 && field[name_length] == '=') {
             size_t value_length = length - name_length - 1;
+
             if (found || value_length >= capacity){ return(-1); }
+
             memcpy(out, field + name_length + 1, value_length);
+
             out[value_length] = '\0';
+
             for (const char *encoded = out; *encoded; encoded++) {
                 if (*encoded != '%') {
                     continue;
@@ -487,6 +507,7 @@ static int form_field(const char *body, const char *name, char *out, size_t capa
             }
 
             url_decode(out);
+
             found = 1;
         }
 
@@ -500,12 +521,14 @@ static int form_field(const char *body, const char *name, char *out, size_t capa
 void handle_complete(TLSClient *client, sqlite3 *db, const char *path, const char *body)
 {
     (void)path;
+
     if (!db) {
         send_http_response(client, 500, "text/plain", "Database is dead");
         return;
     }
 
     char id_text[64], completed[16], return_to[32];
+
     if (form_field(body, "id", id_text, sizeof(id_text)) != 1 ||
         form_field(body, "completed", completed, sizeof(completed)) != 1 ||
         form_field(body, "return_to", return_to, sizeof(return_to)) < 0 ||
@@ -518,25 +541,33 @@ void handle_complete(TLSClient *client, sqlite3 *db, const char *path, const cha
     }
 
     errno = 0;
+
     long parsed_id = strtol(id_text, NULL, 10);
+
     if (errno == ERANGE || parsed_id <= 0 || parsed_id > INT_MAX) {
         send_http_response(client, 400, "text/plain", "Invalid id");
         return;
     }
 
+
     int id = (int)parsed_id;
+
     enum STATUS status = set_todo_completed(db, id, completed[0] == '1');
+
     if (status == TODO_NOT_FOUND) {
         send_404(client, db, path, body);
         return;
     }
+
     if (status != OK) {
         send_http_response(client, 500, "text/plain", "Completion update failed");
         return;
     }
 
     char location[64];
+
     snprintf(location, sizeof(location), "/todos/%d", id);
+
     send_redirect(client, strcmp(return_to, "home") == 0 ? "/" : location);
 }
 
@@ -550,6 +581,7 @@ void handle_update(TLSClient *client, sqlite3 *db, const char *path, const char 
     }
 
     char id_text[64], content[BUF_SIZE];
+
     if (form_field(body, "id", id_text, sizeof(id_text)) != 1 ||
         form_field(body, "content", content, sizeof(content)) != 1 ||
         !id_text[0] || strspn(id_text, "0123456789") != strlen(id_text)) {
@@ -558,11 +590,14 @@ void handle_update(TLSClient *client, sqlite3 *db, const char *path, const char 
     }
 
     errno = 0;
+
     long parsed_id = strtol(id_text, NULL, 10);
+
     if (errno == ERANGE || parsed_id <= 0 || parsed_id > INT_MAX) {
         send_http_response(client, 400, "text/plain", "Invalid id");
         return;
     }
+
     int id = (int)parsed_id;
 
     if (update_todo(db, id, content) != OK) {
@@ -574,7 +609,9 @@ void handle_update(TLSClient *client, sqlite3 *db, const char *path, const char 
     printf("Updated todo #%d\n", id);
 
     char location[64];
+
     snprintf(location, sizeof(location), "/todos/%d", id);
+
     send_redirect(client, location);
 }
 
@@ -589,26 +626,35 @@ void handle_delete(TLSClient *client, sqlite3 *db, const char *path, const char 
     }
 
     char mutable_body[BUF_SIZE];
+
     strncpy(mutable_body, body ? body : "", sizeof(mutable_body) - 1);
+
     mutable_body[sizeof(mutable_body) - 1] = '\0';
 
     char *id_start = strstr(mutable_body, "id=");
+
     if (!id_start) {
         send_http_response(client, 400, "text/plain", "Missing id");
         return;
     }
 
     id_start += 3;
+
     char *id_end = strpbrk(id_start, "&\r\n");
+
     if (id_end) {
         *id_end = '\0';
     }
 
     char id_str[64] = {0};
+
     strncpy(id_str, id_start, sizeof(id_str) - 1);
+
     url_decode(id_str);
 
+
     int id = atoi(id_str);
+
     if (id <= 0) {
         send_http_response(client, 400, "text/plain", "Invalid id");
         return;

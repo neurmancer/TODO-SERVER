@@ -13,6 +13,8 @@ Root `make`, `make run`, `make rebuild`, and `make clean` work too.
 
 Needs `make`, a C compiler(I mean yeah...duh), SQLite/OpenSSL development files, the `openssl`
 CLI, and `sqlite3` if migrating an existing database.
+Music import also needs Python 3 and `ffprobe` (from the `ffmpeg` package).
+`./build.sh install` installs these dependencies on supported distributions.
 
 ```bash
 ./build.sh local
@@ -114,6 +116,87 @@ systemctl --user disable --now todo-tunnel # Stop public access
 User lingering keeps the configured tunnel running without a desktop login.
 After renewing the backend cert, restart both backend and tunnel. Don't use
 `deploy.sh` to manage this route — that one's for Caddy.
+
+## Independent MP3 jukebox
+
+### Well...This shit is too long I'll format those readmes when I am done with the fucking project...
+
+Each browser/app has its own shuffled queue, playback position, pause/resume,
+and seek control. Nothing plays until the listener taps Play. Music keeps
+playing during the site's internal TODO navigation. The Android WebView still
+does not promise screen-off/background playback.
+
+`./build.sh install`, `update`, and `local` automatically import MP3s from the
+[Napster 2.0](https://drive.google.com/drive/folders/1vR_uOUoc2pt6UXissU6Z4Cns8Ema39Y1)
+into `$HOME/.server/music/`, using only MP3s inside its subfolders (recursively).
+MP3s directly in the Drive root folder are skipped. Earlier root-level imports
+are moved into a hidden `.excluded-root-*` archive during sync, removing them
+from playback without deleting the files. Anyone installing the
+project gets this library by default. Initial setup downloads the library;
+later runs skip existing files and download newly added songs.
+
+When songs are added to Drive, pull them without rebuilding or restarting:
+
+```bash
+./build.sh sync-music
+```
+
+Then reload the page/app to refresh its track list. There is no background
+polling: additions are fetched on the next build or explicit `sync-music` run.
+Drive deletions do not delete local songs. Build-time sync finishes before
+stopping an installed service; a failed sync stops the build and preserves
+the running service and previously cached music.
+
+To use another public folder, set `TODO_MUSIC_FOLDER` when running `build.sh`,
+or pass a folder to the importer. You can also place MP3s directly in the music
+directory:
+
+```bash
+# Inspect first; this does not download files:
+python3 scripts/import-music.py --list
+# Import MP3s only; requires ffprobe from the FFmpeg package:
+python3 scripts/import-music.py 'PUBLIC_FOLDER_LINK_OR_ID'
+```
+
+### Nerdy part 
+
+```text
+
+    The importer ignores non-MP3 files, validates downloaded audio, and publishes
+    files atomically. Existing files are skipped; rerun to retry failures or add
+    new songs. It never deletes cached music. If a Drive file's contents change,
+    remove its cached copy before importing again. Downloads are capped at 256 MiB
+    per track by default (`--max-mib` changes this); `--limit 1` imports one track
+    for a quick check, and `--output PATH` chooses another cache directory.
+    Public Drive listing/download pages can change or be rate-limited; import
+    failures leave the existing cache usable. No Drive credentials go to clients.
+
+    After changing the code/frontend, run `./build.sh update` for an installed
+    service, or `./build.sh local` and restart a manually launched server. Music
+    is preserved by installation/update. Refresh the webpage after adding tracks;
+    an empty-library Play button also refreshes the catalogue.
+
+    The server exposes authenticated `/jukebox/songs` JSON and
+    `/jukebox/audio/<track-id>` MP3 responses. Audio supports GET, HEAD, and single
+    byte ranges (206/416) for browser seeking. Local symlinks and non-regular files
+    are excluded. The library supports up to 4096 tracks in the runtime directory;
+    the importer flattens its folder tree and distinguishes duplicate titles.
+
+    Audio transfers run in up to eight forked workers. The parent retains all
+    database/session changes and continues serving the site. Workers close their
+    copy of the listening socket, exit on disconnect/write timeout, are reaped
+    while idle, and stop when the server shuts down. Each transfer has a ten-minute
+    upper bound. Excess simultaneous transfers receive 503 and can be retried.
+    Playback needs no FFmpeg process, YouTube iframe, or shared radio service.
+```
+
+```bash
+make test # Python 3, Node.js, C compiler; uses isolated loopback port 18081
+```
+
+On devices, check first-tap playback, pause/resume, seeking, Next, automatic
+advance, and TODO navigation in Android Chrome, the Android app, and iOS Safari.
+Open two clients and confirm their controls do not affect each other.
 
 ## Keep private shit out of Git
 

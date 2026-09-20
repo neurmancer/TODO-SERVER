@@ -470,8 +470,22 @@ input:focus-visible, textarea:focus-visible {
 }
 
 .music-player {
-    display: none;
+    position: fixed;
+    right: 28px;
+    bottom: 108px;
+    width: min(340px, calc(100vw - 56px));
+    padding: 14px 18px;
+    border: 1px solid var(--purple);
+    border-radius: 10px;
+    background: var(--surface);
+    z-index: 9999;
 }
+.music-player[hidden] { display: none; }
+.music-title { margin: 0 0 8px; color: var(--purple); overflow-wrap: anywhere; }
+.music-player label { font-size: .75rem; color: var(--muted); margin: 0; }
+.music-player input[type="range"] { width: 100%; min-height: 32px; accent-color: var(--green); }
+.music-time { display: block; color: var(--muted); font-size: .75rem; }
+.music-player:not([hidden]) ~ .music-status { bottom: 290px; }
 
 .music-btn:disabled { cursor: wait; opacity: 0.65; }
 .music-status {

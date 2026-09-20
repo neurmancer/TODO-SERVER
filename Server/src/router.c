@@ -1,6 +1,7 @@
 #include "router.h"
 #include "handlers.h"
 #include "auth.h"
+#include "jukebox.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -11,8 +12,10 @@
 typedef struct {
     char method[8];
     char path[256];
+
     Handler handler;
-    int is_wildcard;   // A single * matches any part of the path.
+
+    int is_wildcard;   // A FUCKIIIIIIIING WILD CARD
 } Route;
 
 static Route routes[MAX_ROUTES];
@@ -41,8 +44,10 @@ int route(const char *method, const char *path, Handler handler) {
     Route *r = &routes[route_count++];
     strcpy(r->method, method);
     strcpy(r->path, path);
+    
     r->handler = handler;
     r->is_wildcard = (wildcard != NULL);
+    
     return(0);
 }
 
@@ -57,40 +62,38 @@ void handle_request(TLSClient *client, sqlite3 *db, const char *raw) {
 
     // Query parameters aren't part of the route path.
     char *query = strchr(path, '?');
-    if (query) {
-        *query = '\0';
-    }
+    
+    if (query) { *query = '\0'; }
 
     const char *body = strstr(raw, "\r\n\r\n");
-    if (body) {
-        body += 4;
-    } else {
-        body = "";
-    }
+    
+    if (body) { body += 4; } 
+    else { body = ""; }
 
-    if (auth_handle(client, method, path, raw, body)) {
-        return;
-    }
+    if (auth_handle(client, method, path, raw, body)) { return; }
+
+    if (jukebox_handle(client, method, path, raw)){ return; }
 
     for (int i = 0; i < route_count; i++) {
         Route *r = &routes[i];
 
-        if (strcmp(r->method, method) != 0) {
-            continue;
-        }
+        if (strcmp(r->method, method) != 0) { continue; }
 
         if (r->is_wildcard) {
             const char *wildcard = strchr(r->path, '*');
             size_t prefix_len = (size_t)(wildcard - r->path);
             size_t suffix_len = strlen(wildcard + 1);
             size_t path_len = strlen(path);
+            
             if (path_len >= prefix_len + suffix_len &&
                 strncmp(path, r->path, prefix_len) == 0 &&
                 strcmp(path + path_len - suffix_len, wildcard + 1) == 0) {
                 r->handler(client, db, path, body);
                 return;
             }
-        } else {
+        } 
+        else {
+        
             if (strcmp(path, r->path) == 0) {
                 r->handler(client, db, path, body);
                 return;

@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Cyberspace</string>
+    <string name="error_eyebrow">// nothing here, just static</string>
+    <string name="error_terminal_status">&gt; connection interrupted_</string>
+    <string name="error_footer">Take a breath. Find your way back.</string>
+    <string name="connection_error_title">Can’t connect? (lol)</string>
+    <string name="connection_error_message">You sure you have \'net? If you are already online, the problem is on me bruh...</string>
+    <string name="server_error_title">Damn you netrunners!!</string>
+    <string name="server_error_message">Cyber\'s gone to get cigs will be up eventually.</string>
+    <string name="retry">Reroll lol</string>
     <string name="no_browser">Fuck you mean you dont use browsers on a phone?</string>
 </resources>

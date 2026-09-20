@@ -8,6 +8,7 @@ Does not install services or request a public certificate.
 
 import hashlib
 import http.client
+import json
 import os
 from pathlib import Path
 import shutil
@@ -48,6 +49,8 @@ with tempfile.TemporaryDirectory(prefix='todo-deployment-test-') as tmp:
     tls = work / '.server/tls'
     tls.mkdir(parents=True)
     (work / '.server/db').mkdir()
+    (work / '.server/music').mkdir()
+    (work / '.server/music/proxy-test.mp3').write_bytes(b'ID3-proxy-audio-fixture')
     shutil.copytree(ROOT / 'frontend', work / '.server/frontend')
     subprocess.run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes',
         '-days', '1', '-subj', '/CN=localhost', '-addext',
@@ -144,7 +147,7 @@ with tempfile.TemporaryDirectory(prefix='todo-deployment-test-') as tmp:
             assert request('/style.css')[0] == 200
             assert request('/delete', data=b'id=1')[0] == 401
             assert request('/todos/1')[0] == 303
-            assert request('/jukebox/song')[0] == 303
+            assert request('/jukebox/songs')[0] == 303
             assert request('/login', data=b'username=todo&password=wrong')[0] == 401
             login_data = b'username=todo&password=integration-test-password'
             assert request('/login', data=login_data, origin='https://evil.example')[0] == 403
@@ -156,6 +159,13 @@ with tempfile.TemporaryDirectory(prefix='todo-deployment-test-') as tmp:
                 assert flag in cookie_header
             cookie = cookie_header.split(';')[0]
             assert request('/', cookie)[0] == 200
+            audio_url = json.loads(request('/jukebox/songs', cookie)[1])[0]['url']
+            connection = http.client.HTTPSConnection('localhost', 18443, context=context, timeout=5)
+            connection.request('GET', audio_url, headers={'Cookie': cookie, 'Range': 'bytes=0-2'})
+            audio_response = connection.getresponse()
+            assert audio_response.status == 206 and audio_response.read() == b'ID3'
+            assert audio_response.getheader('Content-Range') == 'bytes 0-2/23'
+            connection.close()
             assert request('/', cookie + 'bad')[0] == 303
             assert request('/', cookie, data=b'todo=blocked', origin='https://evil.example')[0] == 403
             assert request('/', cookie, b'todo=DeploymentCheck')[0] == 303

@@ -9,11 +9,13 @@ SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}.service"
 die() { echo "ERROR: $*" >&2; exit 1; }
 
 usage() {
-    echo "Usage: $0 [install|update|local|remove|delete|--help]"
+    echo "Usage: $0 [install|update|local|sync-music|remove|delete|--help]"
     echo "  install  Upgrade packages, build, install, and start the server (default)."
     echo '           Listen only on localhost:8080; use deploy.sh --domain for public HTTPS.'
     echo '  update   Rebuild, install, and restart the service using existing dependencies.'
     echo '  local    Build here and copy frontend/database to $HOME/.server; skip service setup.'
+    echo '  sync-music  Download new MP3s from the public Drive library; no rebuild/restart.'
+    echo 'install/update/local also sync music. Override the folder with TODO_MUSIC_FOLDER.'
     echo '  remove   Uninstall the service and executable; preserve $HOME/.server.'
     echo '  delete   Uninstall and permanently delete $HOME/.server/db and frontend.'
     echo 'Remove and delete leave installed system packages in place.'
@@ -22,7 +24,7 @@ usage() {
 [[ $# -le 1 ]] || die "Expected at most one argument. Use --help for usage."
 ACTION=${1:-install}
 case "$ACTION" in
-    install|update|local|remove|delete) ;;
+    install|update|local|sync-music|remove|delete) ;;
     -h|--help|help) usage; exit 0 ;;
     *) die "Unknown argument: $ACTION. Use --help for usage." ;;
 esac
@@ -32,7 +34,7 @@ if [[ $(id -u) == 0 ]]; then
     die "Run ./build.sh as your regular user, without sudo. It uses sudo where needed."
 fi
 
-if [[ $ACTION != local ]]; then
+if [[ $ACTION != local && $ACTION != sync-music ]]; then
     command -v sudo >/dev/null || die "sudo is required."
     command -v systemctl >/dev/null || die "systemd is required."
     [[ -d /run/systemd/system ]] || die "Boot this machine with systemd before managing the service."
@@ -71,20 +73,35 @@ SERVER_PATH="$HOME/.server"
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 cd -- "$SCRIPT_DIR"
 
-[[ -f Makefile && -f frontend/index.html && -f frontend/template.html ]] || die "Project sources or frontend files are missing."
-
 if [[ $ACTION == install ]]; then
     echo ">>> Upgrading packages and installing dependencies..."
     if command -v pacman >/dev/null; then
-        sudo pacman -Syu --needed base-devel sqlite curl openssl python
+        sudo pacman -Syu --needed base-devel sqlite curl openssl python ffmpeg
     elif command -v apt-get >/dev/null; then
         sudo apt-get update
         sudo apt-get upgrade -y
-        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 curl libssl-dev openssl python3
+        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 curl libssl-dev openssl python3 ffmpeg
     else
         die "Supported package managers are pacman (Arch) and apt-get (Debian/Ubuntu)."
     fi
 fi
+
+command -v python3 >/dev/null || die "python3 is required to import the music library."
+command -v ffprobe >/dev/null || die "ffprobe is required to validate MP3s. Install the ffmpeg package."
+
+sync_music() {
+    echo ">>> Checking the public Drive library for new MP3s..."
+    python3 scripts/import-music.py --output "$SERVER_PATH/music" ||
+        die "Music sync failed. Cached songs are preserved; rerun ./build.sh sync-music to retry."
+}
+
+if [[ $ACTION == sync-music ]]; then
+    sync_music
+    echo "Music ready. Reload the app/page to refresh its track list; no server restart needed."
+    exit 0
+fi
+
+[[ -f Makefile && -f frontend/index.html && -f frontend/template.html ]] || die "Project sources or frontend files are missing."
 
 echo ">>> Preparing HTTPS certificate..."
 bash ./generate-cert.sh
@@ -93,6 +110,9 @@ echo ">>> Building with Makefile..."
 make clean TARGET="$BINARY_NAME"
 make TARGET="$BINARY_NAME"
 [[ -x ./$BINARY_NAME ]] || die "Make did not produce an executable ${BINARY_NAME}."
+
+# Downloads can take a while. Finish them before stopping the running service.
+sync_music
 
 TEMP_UNIT=""
 TEMP_DB=""
@@ -138,7 +158,7 @@ fi
 fi
 
 echo ">>> Installing runtime files in ${SERVER_PATH}..."
-mkdir -p -- "$SERVER_PATH/db" "$SERVER_PATH/frontend"
+mkdir -p -- "$SERVER_PATH/db" "$SERVER_PATH/frontend" "$SERVER_PATH/music"
 cp -R -- frontend/. "$SERVER_PATH/frontend/"
 
 if [[ -e $SERVER_PATH/db/todo.db || -L $SERVER_PATH/db/todo.db ]]; then
@@ -198,6 +218,7 @@ echo "Starts automatically at boot."
 echo ""
 echo "Useful commands:"
 echo "  ./build.sh update  # Rebuild, install, restart, and check HTTPS"
+echo "  ./build.sh sync-music  # Download new songs without rebuilding/restarting"
 echo "  ./build.sh remove  # Uninstall; keep database and frontend files"
 echo "  ./build.sh delete  # Uninstall and permanently delete database and frontend"
 echo "  sudo systemctl restart ${SERVICE_NAME}"

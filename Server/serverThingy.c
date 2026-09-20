@@ -3,6 +3,7 @@
 #include "src/database.h"
 #include "src/request.h"
 #include "src/auth.h"
+#include "src/jukebox.h"
 
 #include <netinet/in.h>
 #include <stdio.h>
@@ -11,6 +12,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
@@ -139,7 +141,6 @@ int main(void)
         route("GET",  "/favicon.png", send_favicon) < 0 ||
         route("GET",  "/favicon.ico", send_favicon) < 0 ||
         route("GET",  "/todos/*", send_todo_page) < 0 ||
-        route("GET",  "/jukebox/song", send_jukebox_song) < 0 ||
         route("POST", "/",        handle_post) < 0 ||
         route("POST", "/complete", handle_complete) < 0 ||
         route("POST", "/update",  handle_update) < 0 || /*Longest if statement I've ever written so far*/
@@ -171,7 +172,15 @@ int main(void)
     }
 
     printf("Server is running on https://localhost:%d\n", PORT);
+    jukebox_init(server_sock);
     while (flag) {
+        jukebox_reap();
+        // Reap finished audio workers while idle without interrupting TLS I/O
+        // with SIGCHLD. Shutdown signals still interrupt this bounded wait.
+        struct pollfd listener = {.fd = server_sock, .events = POLLIN};
+        int ready = poll(&listener, 1, 1000);
+        if (ready < 0 && errno != EINTR) { perror("poll failed"); goto rome; }
+        if (ready <= 0) continue;
         
         socklen_t client_len = sizeof(client_addr);
         client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &client_len);
@@ -223,6 +232,7 @@ int main(void)
     exit_status = EXIT_SUCCESS;
 
 rome:
+    jukebox_shutdown();
     tls_close(&client);
     SSL_CTX_free(context);
     if (client_sock != -1) {

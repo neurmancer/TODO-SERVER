@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/error_background"
+    android:fillViewport="true"
+    android:visibility="gone">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="24dp">
+
+        <TextView
+            style="@style/ErrorText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/error_eyebrow"
+            android:textColor="@color/error_muted"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            style="@style/ErrorText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textColor="@color/error_purple"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.06"
+            android:shadowColor="#59C084FC"
+            android:shadowRadius="10"
+            android:gravity="center"
+            android:layout_marginBottom="32dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/error_card"
+            android:padding="22dp">
+
+            <TextView
+                style="@style/ErrorText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/error_terminal_status"
+                android:textColor="@color/error_green"
+                android:textSize="12sp"
+                android:layout_marginBottom="24dp" />
+
+            <TextView
+                style="@style/ErrorText"
+                android:id="@+id/error_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:accessibilityLiveRegion="polite"
+                android:textColor="@color/error_purple"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:gravity="start" />
+
+            <TextView
+                style="@style/ErrorText"
+                android:id="@+id/error_message"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:textSize="16sp"
+                android:gravity="start" />
+
+            <Button
+                style="@style/ErrorText"
+                android:id="@+id/retry"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:background="@drawable/error_retry"
+                android:backgroundTint="@null"
+                android:stateListAnimator="@null"
+                android:textColor="@color/error_retry_text"
+                android:textAllCaps="false"
+                android:textStyle="bold"
+                android:text="@string/retry" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/ErrorText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/error_footer"
+            android:textColor="@color/error_muted"
+            android:textSize="12sp"
+            android:gravity="center" />
+    </LinearLayout>
+</ScrollView>

@@ -27,12 +27,17 @@ because apparently a todo list needs a soundtrack
 ## Bragging
 
 - Well...we got cool stuff such as
-    - Randomized music playing jukebox using direct HTTPS audio links (YouTube finally left the building)
+    
+    - Randomized music playing jukebox using direct HTTPS audio links (YouTube finally left the building _Long live Shitty JukebBox Lineage_)
 
     - Dope-ass login screen
+    
     - markdown formatting for todos('cuz...yk it looks nice).
+    
     - We got C as server...well at least started like that than the doctrine have become:
     'Whatever keeps the shit on the internet' than cloudflare, SSL and SQLite3 happened...
+    
+    - Lowkey since MD4C handles the markdown maybe juuuuust maybe I may go for my LaTeX parser? to add it too...I need to settle the score with MD4C lol
 
 - Those were the selling points I guess..
 
@@ -57,7 +62,7 @@ Or install/update the daemon from `Server/` as your regular user:
 ./build.sh update  # Rebuild and restart after changing shit
 ```
 
-### Android — yep...ja*a
+### Android — yup...ja*a
 
 ```bash
 cd Client
