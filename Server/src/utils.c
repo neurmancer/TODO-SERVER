@@ -52,13 +52,17 @@ enum STATUS get_cwd(char *buffer,size_t size)
 
 enum STATUS get_server_path(char *buffer, size_t size, const char *relative_path)
 {
+    const char *runtime = getenv("TODO_SERVER_PATH");
     const char *home = getenv("HOME");
-    if (!home || home[0] != '/') {
-        fprintf(stderr, "HOME must be set to an absolute path\n");
+    if ((runtime && runtime[0] && runtime[0] != '/') ||
+        ((!runtime || !runtime[0]) && (!home || home[0] != '/'))) {
+        fprintf(stderr, "TODO_SERVER_PATH or HOME must be set to an absolute path\n");
         return(U_FUCKED);
     }
 
-    int written = snprintf(buffer, size, "%s/.server/%s", home, relative_path);
+    int written = runtime && runtime[0]
+        ? snprintf(buffer, size, "%s/%s", runtime, relative_path)
+        : snprintf(buffer, size, "%s/.server/%s", home, relative_path);
     if (written < 0 || (size_t)written >= size) {
         fprintf(stderr, "Server path too long\n");
         return(U_FUCKED);

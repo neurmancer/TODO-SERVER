@@ -18,20 +18,23 @@ Music import also needs Python 3 and `ffprobe` (from the `ffmpeg` package).
 
 ```bash
 ./build.sh local
-./server
+TODO_SERVER_PATH="$PWD/../.server" ./server
 ```
 
 Open **https://localhost:8080**. Local mode needs no sudo, installs the frontend,
-and preserves your existing database. Missing database? The server makes one.
+and preserves your existing local database in the project's `.server/` directory.
+Installed builds use `$HOME/.server/` instead. Missing database? The server makes one.
+Use the launch command printed by `build.sh local` so the binary uses the local runtime.
 It only listens on loopback — LAN access doesn't magically fucking happen.
 
 The build generates a self-signed certificate valid for a year. Your browser
-will complain; trust `$HOME/.server/tls/cert.pem` locally. **Never share `key.pem`.**
+will complain; trust `../.server/tls/cert.pem` for a local build (or
+`$HOME/.server/tls/cert.pem` for the installed service). **Never share `key.pem`.**
 
 ```bash
-curl --cacert "$HOME/.server/tls/cert.pem" https://localhost:8080/
+curl --cacert "../.server/tls/cert.pem" https://localhost:8080/
 # Need extra certificate names? Run before building:
-./generate-cert.sh 'DNS:todo.local,IP:192.168.1.20'
+TODO_SERVER_PATH="$PWD/../.server" ./generate-cert.sh 'DNS:todo.local,IP:192.168.1.20'
 ```
 
 Existing certs stay put. to renew or change names move the old cert/key aside,
@@ -128,7 +131,8 @@ does not promise screen-off/background playback.
 
 `./build.sh install`, `update`, and `local` automatically import MP3s from the
 [Napster 2.0](https://drive.google.com/drive/folders/1vR_uOUoc2pt6UXissU6Z4Cns8Ema39Y1)
-into `$HOME/.server/music/`, using only MP3s inside its subfolders (recursively).
+into `$HOME/.server/music/` for installed builds, or the project's `.server/music/`
+for `local`, using only MP3s inside its subfolders (recursively).
 MP3s directly in the Drive root folder are skipped. Earlier root-level imports
 are moved into a hidden `.excluded-root-*` archive during sync, removing them
 from playback without deleting the files. Anyone installing the
@@ -139,7 +143,20 @@ When songs are added to Drive, pull them without rebuilding or restarting:
 
 ```bash
 ./build.sh sync-music
+./build.sh sync-music --local # Target the local build's cache instead
 ```
+
+To clear cached songs, including old copies after renaming tracks on Drive:
+
+```bash
+./build.sh nuke-songs
+./build.sh sync-music
+# For a local build, add --local to both commands.
+```
+
+`nuke-songs` permanently removes only the selected music directory, including
+archived songs. It leaves todos, frontend, credentials, certificates, and Drive
+files intact. It needs no sudo, rebuild, or restart. Reload the page afterward.
 
 Then reload the page/app to refresh its track list. There is no background
 polling: additions are fetched on the next build or explicit `sync-music` run.

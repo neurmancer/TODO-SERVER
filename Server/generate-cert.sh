@@ -6,7 +6,9 @@ umask 077
 # (Again...I'll make this public but won't give you the whole implementation you can figure it out lol)
 [[ $# -le 1 ]] || { echo "Usage: $0 [additional-subject-alt-names]" >&2; exit 1; }
 [[ ${HOME:-} == /* ]] || { echo "HOME must be an absolute path." >&2; exit 1; }
-TLS_DIR="$HOME/.server/tls"
+RUNTIME_DIR=${TODO_SERVER_PATH:-"$HOME/.server"}
+[[ $RUNTIME_DIR == /* ]] || { echo "TODO_SERVER_PATH must be an absolute path." >&2; exit 1; }
+TLS_DIR="$RUNTIME_DIR/tls"
 CERT="$TLS_DIR/cert.pem"
 KEY="$TLS_DIR/key.pem"
 

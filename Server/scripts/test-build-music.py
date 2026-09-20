@@ -53,13 +53,54 @@ with tempfile.TemporaryDirectory(prefix='todo-build-music-test-') as tmp:
 
     result, calls = run('local', 1)
     assert result.returncode != 0 and 'Music sync failed' in result.stderr
-    assert not (home / '.server/frontend').exists(), 'Failed sync must stop before replacing runtime files'
+    assert not (work / '.server/frontend').exists(), 'Failed sync must stop before replacing runtime files'
 
     result, calls = run('local')
 
     assert result.returncode == 0, result.stderr
     assert sum(line.startswith('import ') for line in calls) == 1
-    assert (home / '.server/frontend/index.html').read_text() == 'new frontend'
+    assert (work / '.server/frontend/index.html').read_text() == 'new frontend'
+    assert f'import scripts/import-music.py --output {work}/.server/music' in calls
+    assert f'TODO_SERVER_PATH={work}/.server' in result.stdout
+    assert not (home / '.server/frontend').exists(), 'Local build must not change installed runtime'
     assert not any('unexpected-' in line for line in calls), calls
 
-    print('Passed: sync-only without sudo/rebuild, automatic local-build sync, fail-before-runtime-update, runtime installation')
+    installed = home / '.server'
+    for root in (installed, work / '.server'):
+        (root / 'music/.archive').mkdir(parents=True, exist_ok=True)
+        (root / 'music/track.mp3').write_text('song')
+        (root / 'music/.archive/old.mp3').write_text('old song')
+        (root / 'db').mkdir(exist_ok=True)
+        (root / 'db/todo.db').write_text('keep database')
+        (root / 'tls').mkdir(exist_ok=True)
+        (root / 'tls/key.pem').write_text('keep certificate')
+
+    result, calls = run('nuke-songs')
+    assert result.returncode == 0, result.stderr
+    assert not calls, 'Nuke must not import, compile, or use sudo'
+    assert not (installed / 'music').exists()
+    assert (work / '.server/music/track.mp3').exists(), 'Default nuke must preserve local music'
+    assert (installed / 'db/todo.db').read_text() == 'keep database'
+    assert (installed / 'tls/key.pem').read_text() == 'keep certificate'
+    result, calls = run('nuke-songs')
+    assert result.returncode == 0, 'Nuking an absent cache is harmless'
+
+    (installed / 'music').symlink_to(work / '.server/music', target_is_directory=True)
+    result, calls = run('nuke-songs')
+    assert result.returncode != 0 and 'symlink' in result.stderr
+    assert (work / '.server/music/track.mp3').exists()
+
+    result = subprocess.run(['bash', str(project / 'build.sh'), 'nuke-songs', '--local'],
+                            env=env, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert not (work / '.server/music').exists()
+    assert (work / '.server/db/todo.db').read_text() == 'keep database'
+    assert (work / '.server/frontend/index.html').read_text() == 'new frontend'
+
+    log.write_text('')
+    result = subprocess.run(['bash', str(project / 'build.sh'), 'sync-music', '--local'],
+                            env=env, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert log.read_text().strip() == f'import scripts/import-music.py --output {work}/.server/music'
+
+    print('Passed: installed/local music paths, sync without sudo/rebuild, failed-sync isolation, runtime installation, scoped nuke and symlink refusal')

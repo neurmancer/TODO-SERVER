@@ -2,6 +2,8 @@
 
 ### A Shitty Enterprise™ Product
 
+> _Lowkey I started to get convinced that I'll create NSD (Neuro Software Disturbtion) if I continue like that...
+
 A C server to keep track of your ideas. Started as a proof of concept,
 now I'm writing deployment docs for a *FUCKING* CRUD app. I am not a corpo™.
 
@@ -22,7 +24,8 @@ because apparently a todo list needs a soundtrack
 
 - `Server/` — C backend, web frontend, build and deployment scripts. [Server Details](Server/README.md)
 - `Client/` — Android WebView wrapper. [Build the APK](Client/README.md).
-- `$HOME/.server/` — runtime database, frontend, credentials, and certificates.
+- `$HOME/.server/` — installed runtime database, frontend, music, credentials, and certificates.
+- `.server/` — separate project runtime for `./build.sh local`.
 
 ## Bragging
 

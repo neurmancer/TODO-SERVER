@@ -112,7 +112,7 @@
         navigate(url);
     });
 
-    document.addEventListener('submit', event => {
+    document.addEventListener('submit', async event => {
         const form = event.target;
         if (event.defaultPrevented || !content.contains(form)) return;
         const submitter = event.submitter;
@@ -125,11 +125,22 @@
         if (busy) return;
         const data = new FormData(form);
         if (submitter?.name) data.append(submitter.name, submitter.value);
+        if (url.pathname === '/delete') {
+            const dialog = content.querySelector('.nuke-dialog');
+            if (!dialog || dialog.open) return;
+            dialog.returnValue = 'cancel';
+            const confirmed = new Promise(resolve => {
+                dialog.addEventListener('close', () => resolve(dialog.returnValue === 'nuke'), { once: true });
+            });
+            dialog.showModal();
+            if (!await confirmed || !form.isConnected || busy) return;
+        }
         // The C handlers expect URL-encoded fields, not multipart FormData.
         navigate(url, { body: new URLSearchParams(data) });
     });
 
     window.addEventListener('popstate', () => {
+        content.querySelector('.nuke-dialog[open]')?.close('cancel');
         if (busy) pendingPop = true;
         else navigate(new URL(window.location.href), { pop: true });
     });

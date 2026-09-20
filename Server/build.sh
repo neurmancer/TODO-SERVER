@@ -9,32 +9,37 @@ SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}.service"
 die() { echo "ERROR: $*" >&2; exit 1; }
 
 usage() {
-    echo "Usage: $0 [install|update|local|sync-music|remove|delete|--help]"
+    echo "Usage: $0 [install|update|local|sync-music|nuke-songs|remove|delete|--help] [--local]"
     echo "  install  Upgrade packages, build, install, and start the server (default)."
     echo '           Listen only on localhost:8080; use deploy.sh --domain for public HTTPS.'
     echo '  update   Rebuild, install, and restart the service using existing dependencies.'
-    echo '  local    Build here and copy frontend/database to $HOME/.server; skip service setup.'
+    echo '  local    Build using the project .server directory; skip service setup.'
     echo '  sync-music  Download new MP3s from the public Drive library; no rebuild/restart.'
+    echo '  nuke-songs  Delete the cached music in $HOME/.server/music; keep other runtime data.'
+    echo 'Use --local with sync-music or nuke-songs to target the project .server instead.'
     echo 'install/update/local also sync music. Override the folder with TODO_MUSIC_FOLDER.'
     echo '  remove   Uninstall the service and executable; preserve $HOME/.server.'
     echo '  delete   Uninstall and permanently delete $HOME/.server/db and frontend.'
     echo 'Remove and delete leave installed system packages in place.'
 }
 
-[[ $# -le 1 ]] || die "Expected at most one argument. Use --help for usage."
+[[ $# -le 2 ]] || die "Too many arguments. Use --help for usage."
 ACTION=${1:-install}
 case "$ACTION" in
-    install|update|local|sync-music|remove|delete) ;;
+    install|update|local|sync-music|nuke-songs|remove|delete) ;;
     -h|--help|help) usage; exit 0 ;;
     *) die "Unknown argument: $ACTION. Use --help for usage." ;;
 esac
+if [[ $# == 2 ]]; then
+    [[ $2 == --local && ( $ACTION == sync-music || $ACTION == nuke-songs ) ]] || die "--local is only supported with sync-music or nuke-songs."
+fi
 
 # Build and maintain the data as the login user; elevate only system operations.
 if [[ $(id -u) == 0 ]]; then
     die "Run ./build.sh as your regular user, without sudo. It uses sudo where needed."
 fi
 
-if [[ $ACTION != local && $ACTION != sync-music ]]; then
+if [[ $ACTION != local && $ACTION != sync-music && $ACTION != nuke-songs ]]; then
     command -v sudo >/dev/null || die "sudo is required."
     command -v systemctl >/dev/null || die "systemd is required."
     [[ -d /run/systemd/system ]] || die "Boot this machine with systemd before managing the service."
@@ -71,7 +76,20 @@ fi
 RUN_USER=$(id -un)
 SERVER_PATH="$HOME/.server"
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+if [[ $ACTION == local || ${2:-} == --local ]]; then
+    SERVER_PATH="$(dirname -- "$SCRIPT_DIR")/.server"
+fi
+# Keep certificate generation and the runtime pointed at the same data root.
+export TODO_SERVER_PATH="$SERVER_PATH"
 cd -- "$SCRIPT_DIR"
+
+if [[ $ACTION == nuke-songs ]]; then
+    [[ ! -L $SERVER_PATH && ! -L $SERVER_PATH/music ]] || die "Refusing to delete music through a symlink."
+    rm -rf -- "$SERVER_PATH/music"
+    echo "Cached songs deleted from $SERVER_PATH/music. Reload the app to clear its track list."
+    echo "Run ./build.sh sync-music${2:+ --local} to download the library again."
+    exit 0
+fi
 
 if [[ $ACTION == install ]]; then
     echo ">>> Upgrading packages and installing dependencies..."
@@ -183,7 +201,7 @@ if [[ $ACTION == local ]]; then
     echo "Local build ready: ${SCRIPT_DIR}/${BINARY_NAME}"
     echo "Runtime files: ${SERVER_PATH}"
     echo "Site: https://localhost:8080 (self-signed certificate)"
-    printf 'Run it with: %q\n' "${SCRIPT_DIR}/${BINARY_NAME}"
+    printf 'Run it with: TODO_SERVER_PATH=%q %q\n' "$SERVER_PATH" "${SCRIPT_DIR}/${BINARY_NAME}"
     exit 0
 fi
 
@@ -219,6 +237,7 @@ echo ""
 echo "Useful commands:"
 echo "  ./build.sh update  # Rebuild, install, restart, and check HTTPS"
 echo "  ./build.sh sync-music  # Download new songs without rebuilding/restarting"
+echo "  ./build.sh nuke-songs  # Clear the installed music cache"
 echo "  ./build.sh remove  # Uninstall; keep database and frontend files"
 echo "  ./build.sh delete  # Uninstall and permanently delete database and frontend"
 echo "  sudo systemctl restart ${SERVICE_NAME}"

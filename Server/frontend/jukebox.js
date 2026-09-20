@@ -1,18 +1,22 @@
 (() => {
     const button = document.getElementById('musicBtn');
     const nextButton = document.getElementById('nextSongBtn');
+    const infoButton = document.getElementById('musicInfoBtn');
     const panel = document.getElementById('music-player');
     const status = document.getElementById('music-status');
-    if (!button || !nextButton || !panel || !status) return;
+    if (!button || !nextButton || !infoButton || !panel || !status) return;
 
     // One element survives the site's page-content navigation. Every tab/device
     // owns its playback position and shuffled queue; the server only sends files.
     const audio = new Audio();
     audio.preload = 'none';
-    panel.innerHTML = '<p class="music-title"></p>'
+    panel.hidden = true;
+    panel.innerHTML = '<div class="music-port-heading"><span>RADIOPORT</span><span aria-hidden="true">// FM_01</span></div>'
+        + '<p class="music-port-label">// incoming transmission</p>'
+        + '<p class="music-title music-glitch">No signal yet. Hit play.</p>'
+        + '<output class="music-time music-glitch" for="music-seek">0:00 / 0:00</output>'
         + '<label for="music-seek">Seek through song</label>'
-        + '<input id="music-seek" type="range" min="0" max="1000" value="0" disabled>'
-        + '<output class="music-time" for="music-seek">0:00 / 0:00</output>';
+        + '<input id="music-seek" type="range" min="0" max="1000" value="0" disabled>';
     panel.append(audio);
     const title = panel.querySelector('.music-title');
     const seek = panel.querySelector('input');
@@ -52,6 +56,7 @@
         seek.value = seek.disabled ? 0 : Math.round(audio.currentTime / duration * 1000);
         seek.setAttribute('aria-valuetext', `${clock(audio.currentTime)} of ${clock(duration)}`);
         time.textContent = `${clock(audio.currentTime)} / ${clock(duration)}`;
+        time.setAttribute('data-text', time.textContent);
     }
 
     function play() {
@@ -87,7 +92,7 @@
         current = queue.pop();
         audio.src = current.url;
         title.textContent = current.title.replace(/ \[[\w-]{10,}\](?=\.mp3$)/i, '').replace(/\.mp3$/i, '');
-        panel.hidden = false;
+        title.setAttribute('data-text', title.textContent);
         updateProgress();
         if ('mediaSession' in navigator && 'MediaMetadata' in window) {
             navigator.mediaSession.metadata = new MediaMetadata({ title: title.textContent, artist: 'Cyberspace jukebox' });
@@ -123,6 +128,12 @@
         else { generation++; audio.pause(); }
     });
     nextButton.addEventListener('click', next);
+    infoButton.addEventListener('click', () => {
+        panel.hidden = !panel.hidden;
+        infoButton.setAttribute('aria-expanded', String(!panel.hidden));
+        infoButton.setAttribute('aria-label', panel.hidden ? 'Show track info' : 'Hide track info');
+        infoButton.title = panel.hidden ? 'Show track info' : 'Hide track info';
+    });
     seek.addEventListener('input', () => {
         if (Number.isFinite(audio.duration)) audio.currentTime = Number(seek.value) / 1000 * audio.duration;
         updateProgress();

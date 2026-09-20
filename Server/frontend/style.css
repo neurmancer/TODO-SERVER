@@ -163,6 +163,36 @@ input:focus-visible, textarea:focus-visible {
 .todo-page form { margin: 24px 0; }
 .todo-toggle, .todo-page .todo-toggle { margin: 0; flex-shrink: 0; }
 
+.nuke-dialog {
+    width: min(480px, calc(100% - 32px));
+    max-height: calc(100dvh - 32px);
+    padding: 26px;
+    border: 1px solid var(--purple);
+    border-top: 2px solid var(--purple);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--muted);
+    box-shadow: 0 0 30px rgba(168, 80, 255, 0.18);
+    overflow-wrap: anywhere;
+}
+.nuke-dialog::backdrop { background: rgba(13, 17, 23, 0.85); backdrop-filter: blur(4px); }
+.nuke-dialog .eyebrow { margin: 0 0 16px; }
+.nuke-dialog h2 { margin: 0 0 20px; font-size: 2rem; line-height: 1.2; }
+.nuke-title {
+    padding: 12px 14px;
+    border-left: 2px solid var(--purple);
+    background: var(--background);
+    color: var(--text);
+    font-weight: bold;
+    max-height: 25vh;
+    overflow: auto;
+}
+.todo-page .nuke-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0 0; }
+.nuke-actions button { flex: 1 1 160px; }
+.nuke-actions button[value="nuke"] { color: #ffa7b5; border-color: #ffa7b5; background: #2b1a24; }
+.nuke-actions button[value="nuke"]:hover,
+.nuke-actions button[value="nuke"]:focus-visible { box-shadow: 0 0 15px rgba(255, 167, 181, 0.2); }
+
 .footer {
     margin-top: 64px;
     padding-top: 24px;
@@ -473,19 +503,46 @@ input:focus-visible, textarea:focus-visible {
     position: fixed;
     right: 28px;
     bottom: 108px;
-    width: min(340px, calc(100vw - 56px));
-    padding: 14px 18px;
+    width: min(380px, calc(100vw - 56px));
+    max-height: calc(100dvh - 140px);
+    overflow-y: auto;
+    padding: 18px 20px;
     border: 1px solid var(--purple);
-    border-radius: 10px;
-    background: var(--surface);
+    border-left: 3px solid var(--purple);
+    border-radius: 0;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+    background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(168, 80, 255, 0.035) 3px 4px), var(--background);
+    box-shadow: inset 0 0 24px rgba(168, 80, 255, 0.08);
     z-index: 9999;
 }
 .music-player[hidden] { display: none; }
-.music-title { margin: 0 0 8px; color: var(--purple); overflow-wrap: anywhere; }
-.music-player label { font-size: .75rem; color: var(--muted); margin: 0; }
+.music-port-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--purple); color: var(--green); }
+.music-port-heading > :first-child { font-size: 1.3rem; font-weight: bold; letter-spacing: 2px; }
+.music-port-heading > :last-child { color: var(--purple); font-size: .65rem; white-space: nowrap; }
+.music-port-label { margin: 14px 0 6px; color: var(--muted); font-size: .65rem; text-transform: uppercase; letter-spacing: 1px; }
+.music-title { margin: 0 0 8px; color: var(--purple); overflow-wrap: anywhere; font-weight: bold; line-height: 1.4; }
+.music-player label { display: block; font-size: .65rem; color: var(--muted); margin: 12px 0 0; }
 .music-player input[type="range"] { width: 100%; min-height: 32px; accent-color: var(--green); }
-.music-time { display: block; color: var(--muted); font-size: .75rem; }
-.music-player:not([hidden]) ~ .music-status { bottom: 290px; }
+.music-time { display: block; color: var(--green); font-size: .8rem; letter-spacing: 2px; }
+.music-glitch { position: relative; }
+.music-glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    color: var(--green);
+    pointer-events: none;
+    clip-path: inset(0 0 100% 0);
+    animation: radio-glitch 5s infinite steps(1);
+}
+.music-time::after { color: var(--purple); animation-delay: .15s; }
+.music-info-btn { color: var(--purple); border-color: var(--purple); box-shadow: 0 0 12px rgba(168, 80, 255, 0.3); }
+.music-info-btn[aria-expanded="true"] { color: var(--green); border-color: var(--green); background: rgba(57, 255, 20, 0.08); }
+@keyframes radio-glitch {
+    0%, 91%, 100% { clip-path: inset(0 0 100% 0); transform: translateX(0); }
+    92%, 96% { clip-path: inset(15% 0 55% 0); transform: translateX(-2px); }
+    94%, 98% { clip-path: inset(65% 0 10% 0); transform: translateX(2px); }
+}
+.music-player:not([hidden]) ~ .music-status:not(:empty) { bottom: auto; top: 20px; }
 
 .music-btn:disabled { cursor: wait; opacity: 0.65; }
 .music-status {
@@ -505,6 +562,7 @@ input:focus-visible, textarea:focus-visible {
 body { padding-bottom: 112px; }
 
 @media (prefers-reduced-motion: reduce) {
+    .music-glitch::after { animation: none; display: none; }
     .music-btn { transition: none; }
     .music-btn:hover, .music-btn:focus-visible { transform: none; }
 }
