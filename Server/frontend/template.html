@@ -51,9 +51,9 @@
         </section>
         <form id="notes-editor" action="/update" method="POST" hidden>
             <input type="hidden" name="id" value="{{ id }}">
-            <label for="content"></label>
-            <p class="markdown-help" id="markdown-help">//Yk how to type markdown right?</p>
-            <textarea id="content" name="content" rows="12" cols="70" aria-describedby="markdown-help">{{ content }}</textarea><br>
+            <label for="content">//Edit notes</label>
+            <p class="markdown-help" id="markdown-help">Yk markdown right? So use it duh....</p>
+            <textarea id="content" name="content" rows="20" cols="100" aria-describedby="markdown-help" spellcheck="false">{{ content }}</textarea>
             <div class="editor-actions">
                 <button type="submit" id="save-notes">Save</button>
                 <button type="button" id="cancel-notes">Fuck it</button>

@@ -221,7 +221,33 @@ input:focus-visible, textarea:focus-visible {
 .notes-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
 .notes-heading h2 { margin: 0; }
 .editor-actions { display: flex; flex-wrap: wrap; gap: 12px; }
-#content { tab-size: 4; }
+#content {
+    min-height: 16rem;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    line-height: 1.75;
+    tab-size: 4;
+    caret-color: var(--green);
+    scrollbar-width: thin;
+    scrollbar-color: #78539d var(--background);
+    scrollbar-gutter: stable;
+}
+#content:focus-visible {
+    border-color: var(--purple);
+    outline-color: var(--purple);
+    box-shadow: 0 0 18px rgba(168, 80, 255, 0.12);
+}
+#content::selection { background: #493064; color: #fff; }
+#content::-webkit-scrollbar { width: 10px; height: 10px; }
+#content::-webkit-scrollbar-track { background: var(--background); border-radius: 10px; }
+#content::-webkit-scrollbar-thumb {
+    background: #78539d;
+    border: 3px solid var(--background);
+    border-radius: 10px;
+}
+#content::-webkit-scrollbar-thumb:hover { background: var(--purple); }
+#content::-webkit-scrollbar-corner { background: var(--background); }
 .markdown-help { color: var(--muted); font-size: 0.85rem; }
 .markdown-body { color: #c9d1d9; overflow-wrap: anywhere; }
 .markdown-body:empty::before { content: "No notes yet. Add some Markdown below."; color: var(--muted); }

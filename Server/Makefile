@@ -42,3 +42,4 @@ test:
 	python3 scripts/test-music-import.py
 	python3 scripts/test-build-music.py
 	node scripts/test-jukebox-ui.js
+	node scripts/test-editor-ui.js
