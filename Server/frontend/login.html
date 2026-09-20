@@ -2,13 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Sign in · Cyberspace</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="/style.css">
+    <script src="/intro.js"></script>
     <script src="/login.js" defer></script>
 </head>
 <body class="login-page">
+    <button class="site-intro" type="button" aria-label="Skip opening animation" hidden>
+        <span class="intro-word" data-text="Cyberspace" aria-hidden="true">Cyberspace</span>
+        <span class="intro-streaks" aria-hidden="true"></span>
+    </button>
     <main class="login-shell">
         <header class="page-header">
             <p class="eyebrow">// a little order in the chaos</p>

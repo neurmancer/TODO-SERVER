@@ -24,7 +24,11 @@ function client(catalogue) {
     const elements = Object.fromEntries(['musicBtn', 'nextSongBtn', 'musicInfoBtn', 'music-player', 'music-status']
         .map(id => [id, new Element()]));
     const title = new Element(), seek = new Element(), time = new Element();
-    elements['music-player'].querySelector = selector => ({ '.music-title': title, input: seek, output: time })[selector];
+    elements['music-player'].querySelector = selector => {
+        const markup = elements['music-player'].innerHTML;
+        if (selector === 'input' && !/<input\b[^>]*id="music-seek"[^>]*type="range"/.test(markup)) return null;
+        return ({ '.music-title': title, input: seek, output: time })[selector];
+    };
     let audio, gesture = false, calls = 0;
     class Audio extends Element {
         constructor() {
@@ -89,6 +93,12 @@ function client(catalogue) {
     
     first.audio.duration = 200;
     first.audio.emit('loadedmetadata');
+    assert.equal(first.seek.disabled, false, 'Metadata enables seeking');
+    assert.equal(first.time.textContent, '0:00 / 3:20');
+    first.audio.currentTime = 50;
+    first.audio.emit('timeupdate');
+    assert.equal(first.seek.value, 250, 'Playback advances the progress bar');
+    assert.equal(first.time.textContent, '0:50 / 3:20');
     first.seek.value = 500;
     first.seek.emit('input');
     //Yup trying to make the code more readable-ish

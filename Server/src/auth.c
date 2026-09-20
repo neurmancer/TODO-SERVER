@@ -296,7 +296,7 @@ int auth_handle(TLSClient *client, const char *method, const char *path, const c
         reply(client, 403, "application/json", "", "{\"error\":\"Request origin rejected.\"}"); return(1);
     }
     
-    if (get && (!strcmp(path, "/style.css") || !strcmp(path, "/login.js") || !strcmp(path, "/favicon.png"))) {
+    if (get && (!strcmp(path, "/style.css") || !strcmp(path, "/login.js") || !strcmp(path, "/intro.js") || !strcmp(path, "/favicon.png"))) {
         return(0);
     }
     

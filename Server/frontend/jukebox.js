@@ -4,23 +4,25 @@
     const infoButton = document.getElementById('musicInfoBtn');
     const panel = document.getElementById('music-player');
     const status = document.getElementById('music-status');
+
     if (!button || !nextButton || !infoButton || !panel || !status) return;
 
-    // One element survives the site's page-content navigation. Every tab/device
-    // owns its playback position and shuffled queue; the server only sends files.
     const audio = new Audio();
+
     audio.preload = 'none';
+
     panel.hidden = true;
     panel.innerHTML = '<div class="music-port-heading"><span>RADIOPORT</span><span aria-hidden="true">// FM_01</span></div>'
         + '<p class="music-port-label">// incoming transmission</p>'
-        + '<p class="music-title music-glitch">No signal yet. Hit play.</p>'
+        + '<p class="music-title music-glitch">Just static yet. Hit play.</p>'
         + '<output class="music-time music-glitch" for="music-seek">0:00 / 0:00</output>'
-        + '<label for="music-seek">Seek through song</label>'
-        + '<input id="music-seek" type="range" min="0" max="1000" value="0" disabled>';
+        + '<input id="music-seek" type="range" aria-label="Seek through song" min="0" max="1000" value="0" disabled>';
     panel.append(audio);
+
     const title = panel.querySelector('.music-title');
     const seek = panel.querySelector('input');
     const time = panel.querySelector('output');
+
     let tracks = [];
     let queue = [];
     let current = null;
@@ -106,14 +108,14 @@
         try {
             const response = await fetch('/jukebox/songs', { cache: 'no-store', signal: AbortSignal.timeout(10000) });
             if (response.redirected || response.status === 401) throw new Error('Sign in again to load music.');
-            if (!response.ok) throw new Error('Could not load music. Press play to retry.');
+            if (!response.ok) throw new Error('Just static... Press play to retry.');
             const data = await response.json();
-            if (!Array.isArray(data)) throw new Error('Invalid music catalogue.');
+            if (!Array.isArray(data)) throw new Error('Invalid catalogue.');
             tracks = data.filter(track => typeof track.title === 'string'
                 && typeof track.url === 'string' && /^\/jukebox\/audio\/[a-f0-9]{64}$/.test(track.url));
             status.textContent = tracks.length ? '' : 'No MP3s in the server’s music library yet. Press play to refresh.';
         } catch (error) {
-            status.textContent = error.message || 'Could not load music. Press play to retry.';
+            status.textContent = error.message || 'Just static... Press play to retry.';
         } finally {
             showPlaying(false);
             button.disabled = false;

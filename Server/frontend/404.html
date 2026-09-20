@@ -1,12 +1,13 @@
-<!DOCTYPE html>
+./<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>404 — Lost in Cyberspace</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism-tomorrow.min.css" integrity="sha384-wFjoQjtV1y5jVHbt0p35Ui8aV8GVpEZkyF99OXWqP/eNJDU93D3Ugxkoyh6Y2I4A" crossorigin="anonymous">
     <link rel="stylesheet" href="/style.css">
+    <script src="/intro.js"></script>
     <!-- Some web nerd sorcery that I stole -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js" integrity="sha384-xAgN7OCsK5s0d3G18tqRYrxy8hWsPA14E26TMh7Mi9ZM09vaz4EA0DBTl+80F5yC" crossorigin="anonymous" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-c.min.js" integrity="sha384-gaD4ncierlmWk42Z3BmTp37/z+Dqt8V4Wf74UjTvFeo+M+SgnEI6Ysd98pWhksQv" crossorigin="anonymous" defer></script>
@@ -16,6 +17,10 @@
     <script src="/navigation.js" defer></script>
 </head>
 <body>
+    <button class="site-intro" type="button" aria-label="Skip opening animation" hidden>
+        <span class="intro-word" data-text="Cyberspace" aria-hidden="true">Cyberspace</span>
+        <span class="intro-streaks" aria-hidden="true"></span>
+    </button>
     <p id="navigation-status" role="status" hidden></p>
     <div id="page-content">
         <header class="page-header">

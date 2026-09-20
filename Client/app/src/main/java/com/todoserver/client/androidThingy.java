@@ -61,6 +61,8 @@ public final class androidThingy extends Activity {
         }
 
         WebSettings settings = webView.getSettings();
+        // Identify this app so the opening animation stays out of ordinary browsers.
+        settings.setUserAgentString(settings.getUserAgentString() + " CyberspaceAndroid/1.0");
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         // The frontend waits for Play; allow its subsequent queued track transitions.
