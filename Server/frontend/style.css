@@ -849,3 +849,6 @@ body:has(.music-controls) { padding-bottom: calc(112px + env(safe-area-inset-bot
     .intro-pending body { visibility: visible; }
     .site-intro, .intro-word, .intro-word::before, .intro-word::after, .intro-streaks { animation: none; }
 }
+
+/* Leave breathing room when following a Markdown heading link. */
+.markdown-body :is(h1, h2, h3, h4, h5, h6)[id] { scroll-margin-top: 1rem; }

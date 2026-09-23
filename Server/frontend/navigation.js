@@ -26,6 +26,27 @@
         history.replaceState({ ...history.state, scrollY: window.scrollY }, '', window.location.href);
     }
 
+    function sameDocument(left, right) {
+        return left.origin === right.origin && left.pathname === right.pathname && left.search === right.search;
+    }
+
+    function scrollToFragment(url) {
+        let id;
+        try { id = decodeURIComponent(url.hash.slice(1)); }
+        catch { id = url.hash.slice(1); }
+        if (!id) { window.scrollTo(0, 0); return; }
+        const target = document.getElementById(id);
+        if (!target || !content.contains(target)) return;
+        target.setAttribute('tabindex', '-1');
+        target.focus({ preventScroll: true });
+        target.scrollIntoView();
+    }
+
+    // Keep the outgoing entry's position ready before Back/Forward changes it.
+    window.addEventListener('scroll', () => {
+        if (!busy && displayedUrl === window.location.href) saveScroll();
+    }, { passive: true });
+
     saveScroll();
     history.scrollRestoration = 'manual';
 
@@ -79,7 +100,7 @@
             main?.focus({ preventScroll: true });
             window.scrollTo(0, pop ? restoreScroll : body && samePage ? previousScroll : 0);
             if (!pop && destination.hash) {
-                content.querySelector(`#${CSS.escape(decodeURIComponent(destination.hash.slice(1)))}`)?.scrollIntoView();
+                scrollToFragment(destination);
             }
         } catch (error) {
             if (!pendingPop) {
@@ -107,7 +128,16 @@
             (link.target && link.target !== '_self')) return;
         const url = new URL(link.href);
         if (!isPage(url)) return;
-        if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) return;
+        if (sameDocument(url, new URL(window.location.href)) && link.href.includes('#')) {
+            event.preventDefault();
+            if (busy) return;
+            saveScroll();
+            if (url.href !== window.location.href) history.pushState({}, '', url);
+            displayedUrl = url.href;
+            scrollToFragment(url);
+            saveScroll();
+            return;
+        }
         event.preventDefault();
         navigate(url);
     });
@@ -142,6 +172,13 @@
     window.addEventListener('popstate', () => {
         content.querySelector('.nuke-dialog[open]')?.close('cancel');
         if (busy) pendingPop = true;
-        else navigate(new URL(window.location.href), { pop: true });
+        else {
+            const url = new URL(window.location.href);
+            if (sameDocument(url, new URL(displayedUrl))) {
+                displayedUrl = url.href;
+                if (Number.isFinite(history.state?.scrollY)) window.scrollTo(0, history.state.scrollY);
+                else scrollToFragment(url);
+            } else navigate(url, { pop: true });
+        }
     });
 })();
